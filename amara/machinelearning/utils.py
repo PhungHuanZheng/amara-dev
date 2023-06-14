@@ -10,7 +10,6 @@ import os
 import pickle
 from typing import Any
 from datetime import datetime
-from dataclasses import dataclass
 
 
 class PredictionStorage:
