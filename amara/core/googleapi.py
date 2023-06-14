@@ -20,7 +20,7 @@ from googleapiclient.errors import HttpError
 
 
 class SheetConnection:
-    """
+    r"""
     Handles reading and writing between Google Sheets API and pandas DataFrame
     objects, requires Google Account login and API access.
 
@@ -45,7 +45,7 @@ class SheetConnection:
 
     def __init__(self, scopes: list[str], spreadsheet_id: str, data_range: str) -> None:
         """
-        Instantiates an instance of `amara.core.googleapi.SheetConnection, connecting
+        Instantiates an instance of `amara.core.googleapi.SheetConnection`, connecting
         to the Google Sheet and its data specified by the `spreadsheet_id` and `data_range`.
 
         Parameters
