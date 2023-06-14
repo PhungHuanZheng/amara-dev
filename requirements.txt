@@ -40,7 +40,7 @@ google-spreadsheet==0.0.6
 googleapis-common-protos==1.59.0
 gower==0.1.2
 HeapDict==1.0.1
-hijri-converter==2.2.4
+hijri-converter==2.3.1
 httplib2==0.22.0
 idna==3.4
 importlib-metadata==6.6.0
