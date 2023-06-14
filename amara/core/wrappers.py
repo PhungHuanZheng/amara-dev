@@ -7,6 +7,7 @@ provided by other modules, e.g.: Pandas, Numpy, etc
 from __future__ import annotations
 
 import os
+import shutil
 import pickle
 from typing import Callable, Any, TypeVar
 from joblib import Parallel, delayed
@@ -166,8 +167,8 @@ class DirectoryWrapper:
     -------
     :func:`apply`
         Applies a `__callback` on all filepaths in `files`.
-    :func:`cache`
-        Saves all filenames as a pickle object at the `filepath` passed.
+    :func:`reset`
+        Resets the root directory, removing all files within.
 
     Examples
     --------
@@ -225,19 +226,25 @@ class DirectoryWrapper:
         """
 
         return Parallel(n_jobs=-1, verbose=0)(delayed(__callback)(filename) for filename in self.files)
-    
-    def cache(self, filepath: os.PathLike) -> None:
-        """
-        Saves all filenames as a pickle object at the `filepath` passed.
 
-        Parameters
-        ----------
-        `filepath` : `os.PathLike`
-            Filepath to save pickled filenames to.
-        """
-
-        filenames = [filename.split('\\')[-1] for filename in self.files]
         
-        with open(filepath, 'wb') as file:
-            pickle.dump(filenames, file)
+    def reset(self) -> None:
+        """
+        Resets the root directory, removing all files within. If directory does not exist,
+        creates it.
+
+        See Also
+        --------
+        :func:`shutil.rmtree` : Removes a directory
+        """
+
+        # try except tree to attempt to reverse deletion in case creation fails
+        try:
+            shutil.rmtree(self.__root)
+            os.mkdir(self.__root)
+        except Exception:
+            try:
+                os.mkdir(self.__root)
+            except Exception:
+                pass
 
