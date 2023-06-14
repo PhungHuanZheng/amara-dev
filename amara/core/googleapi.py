@@ -20,7 +20,7 @@ from googleapiclient.errors import HttpError
 
 
 class SheetConnection:
-    r"""
+    """
     Handles reading and writing between Google Sheets API and pandas DataFrame
     objects, requires Google Account login and API access.
 
