@@ -1,1 +1,2 @@
+from amara.machinelearning.utils.SupervisedModelSelector import SupervisedModelSelector
 from amara.machinelearning.utils.PredictionStorage import PredictionStorage
