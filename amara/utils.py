@@ -63,7 +63,7 @@ class ConfigFile:
             Dictionary of config data.
         """
 
-        return self.__configparser.items(section_name)
+        return dict(self.__configparser.items(section_name))
     
     @property
     def all(self) -> dict[str, str]:
@@ -71,5 +71,9 @@ class ConfigFile:
         Returns all config data in the config file regardless of section.
         """
 
+        config_dict = {}
+
         for section in self.sections:
-            print(self.get(section))
+            config_dict = config_dict | self.get(section)
+
+        return config_dict
