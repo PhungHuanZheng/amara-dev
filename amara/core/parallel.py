@@ -52,12 +52,13 @@ def processor_loop(filepath: os.PathLike | str, sheet_names: list[str] = None, p
     if sheet_names is None:
         df = processor(pd.read_excel(filepath))
 
-    dfs: dict[str, pd.DataFrame] = pd.read_excel(filepath, sheet_name=sheet_names)
-    df = pd.concat([processor(df) for _, df in dfs.items()])
+    else:
+        dfs: dict[str, pd.DataFrame] = pd.read_excel(filepath, sheet_name=sheet_names)
+        df = pd.concat([processor(df) for _, df in dfs.items()])
 
     if progress_tracker is not None:
         progress_tracker.update()
-    
+        
     return df
     
 
