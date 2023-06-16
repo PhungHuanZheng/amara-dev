@@ -12,10 +12,10 @@ from joblib.parallel import Parallel, delayed
 
 import pandas as pd
 
-from amara.visuals.progress import ThreadSafeProgressBar
+from amara.visuals.progress import SingleProgressBar
 
 
-def processor_loop(filepath: os.PathLike | str, sheet_names: list[str] = None, processor: Callable[[pd.DataFrame], pd.DataFrame] = None, progress_tracker: ThreadSafeProgressBar = None) -> pd.DataFrame:
+def processor_loop(filepath: os.PathLike | str, sheet_names: list[str] = None, processor: Callable[[pd.DataFrame], pd.DataFrame] = None, progress_tracker: SingleProgressBar = None) -> pd.DataFrame:
     """
     Loop function to be used with the `joblib.Parallel` class for data processing
     with Pandas.
