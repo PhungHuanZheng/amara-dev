@@ -15,16 +15,13 @@ from typing import Literal
 class SingleProgressBar:
     """
     Creates a progress bar on a single line in the command prompt. There should be no other printing or 
-    logging within the script if this object is used. Follows the `singleton` design pattern where only
-    1 can exist at a time.
+    logging within the script if this object is used
 
     Methods
     -------
     :func:`update`
         Increments the internal step counter of the `SingleProgressBar` object by 1.
     """
-
-    __exists = False
 
     def __init__(self, steps: int | Literal['auto'] = 'auto', bar_length: int = 150, characters: tuple[str, str] = ('░', '▒')) -> None:
         """
@@ -50,9 +47,6 @@ class SingleProgressBar:
         as the class will scan the calling script for `SingleProgressBar.update` calls to derive
         the `steps` number.
         """
-
-        if self.__exists:
-            raise Exception(f'Only one SingleProgressBar should exist per script.')
 
         self.__steps = steps
         self.__current_step = 0
