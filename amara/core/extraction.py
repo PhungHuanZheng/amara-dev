@@ -88,7 +88,6 @@ def Agilysis_extract_raw_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     if len(agilysis_dfs[2].columns) != len(departments):
         # get missing deptartment
         missing_departments = set(departments) - set(agilysis_dfs[2].columns)
-        print(missing_departments)
 
         # mend departments df
         for dept in missing_departments:
