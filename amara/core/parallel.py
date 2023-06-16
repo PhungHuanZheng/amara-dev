@@ -50,7 +50,7 @@ def processor_loop(filepath: os.PathLike | str, sheet_names: list[str] = None, p
         processor = lambda df: df
 
     if sheet_names is None:
-        return processor(pd.read_excel(filepath))
+        df = processor(pd.read_excel(filepath))
 
     dfs: dict[str, pd.DataFrame] = pd.read_excel(filepath, sheet_name=sheet_names)
     df = pd.concat([processor(df) for _, df in dfs.items()])
