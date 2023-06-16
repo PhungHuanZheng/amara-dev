@@ -212,7 +212,8 @@ class DirectoryWrapper:
     
     def apply(self, __callback: Callable[[os.PathLike], T]) -> list[T]:
         """
-        Applies a `__callback` on all filepaths in `files`.
+        Applies a `__callback` on all filepaths in `files`. Outputs
+            have the same `type` as the return value of the `__callback` passed.
 
         Parameters
         ----------
@@ -222,7 +223,7 @@ class DirectoryWrapper:
         Returns
         -------
         `list[T]`
-            List of the outputs from the `__callback` passed after applying to all `files`.
+            List of the outputs from the `__callback` passed after applying to all `files`. 
         """
 
         return Parallel(n_jobs=-1, verbose=0)(delayed(__callback)(filename) for filename in self.files)
