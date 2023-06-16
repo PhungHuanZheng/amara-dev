@@ -227,7 +227,6 @@ class DirectoryWrapper:
 
         return Parallel(n_jobs=-1, verbose=0)(delayed(__callback)(filename) for filename in self.files)
 
-        
     def reset(self) -> None:
         """
         Resets the root directory, removing all files within. If directory does not exist,

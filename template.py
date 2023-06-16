@@ -90,7 +90,7 @@ def main():
     tracker.update()
 
 
-    
+
 
 if __name__ == '__main__':
     start = time.perf_counter()
