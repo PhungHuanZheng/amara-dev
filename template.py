@@ -27,7 +27,13 @@ from importlib import reload
 import sys; sys.path.append('../amara-dev')
 import amara; reload(amara)
 
+# import data extraction functions
+from amara.core.extraction import *
 
+# import specific dataset processing functions
+from amara.datasets.Events import WeightedOccupancyCalendar, single_date_event_map
+from amara.datasets.Info_HMS_Raw_Arrivals import mend_arrival_departure_dates
+from amara.datasets.Master_Calendar import MasterCalendar
 
 
 def main():
