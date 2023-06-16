@@ -87,7 +87,6 @@ class SingleProgressBar:
 
         self.__exists = True
 
-
     def update(self) -> None:
         """
         Increments the internal step counter of the `SingleProgressBar` object by 1. 
@@ -108,3 +107,69 @@ class SingleProgressBar:
 
         if self.__current_step == self.__steps:
             print()
+
+class ThreadSafeProgressBar:
+    """
+    Create a thread-safe Progress Base visual in the console, with normal progress bar
+    behaviour in parallel processing environments.
+
+    Methods
+    -------
+    :func:`update`
+        Increments the internal step counter of the `SingleProgressBar` object by 1.
+    """
+
+    def __init__(self, steps: int | Literal['auto'] = 'auto', bar_length: int = 150, characters: tuple[str, str] = ('░', '▒')) -> None:
+        """
+        Instantiates an instance of `amara.visuals.progress.ThreadSafeProgressBar`.
+
+        Parameters
+        ----------
+        `steps` : `int | Literal['auto']`, `default='auto'`
+            Sets the number of steps 
+        `bar_length` : `int`, `default=150`
+            The length of the bar printed in the command prompt
+        `characters` : `tuple[str, str]`, `default=('░', '▒')`
+            The characters used to indicate the current progress. The right-side character 
+            should indicate completed and vice versa.
+
+        Examples
+        --------
+        >>> progress = SingleProgressBar(steps=100, bar_length=200, characters=(' ', ']'))
+        >>> def update_loop(tracker):
+        ...     tracker.update()
+        
+        >>> Parallel()(delayed(update_loop)(tracker) for _ in range(100))
+
+        Notes
+        -----
+        If `steps` is set to auto, ensure that no `ThreadSafeProgressBar.update` calls are in a loop
+        as the class will scan the calling script for `ThreadSafeProgressBar.update` calls to derive
+        the `steps` number.
+        """
+        
+        self.__steps = steps
+        self.__current_step = 0
+
+        self.__characters = characters
+        self.__bar_length = bar_length
+
+        self.__tbd_section = [f'{self.__characters[0]}'] * bar_length
+        self.__done_section = []
+
+    def update(self):
+        """
+        Increments the internal step counter of the `SingleProgressBar` object by 1. 
+        Prints the next updated progress bar with the new progress visual and 
+        percentage.
+        """
+
+        # get section length of each update
+        update_length = math.ceil(self.__bar_length / self.__steps)
+
+        self.__done_section += [self.__characters[1] * update_length]
+        self.__tbd_section = self.__tbd_section[:-update_length]
+
+        print(f'\r{"".join(self.__done_section)}{"".join(self.__tbd_section)}', end='')
+
+        self.__current_step += 1
