@@ -17,7 +17,7 @@ from amara.static.branches import hotels
 departments = hotels['ASIN']['Agilysis']
 
 
-def Agilysis_extract_raw_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def Agilysis_extract_raw_data(data: pd.DataFrame) -> list[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Separates the Agilysis Report provided by FnB into 3 datasets -- Revenue, Department
     and Settlement.
@@ -32,13 +32,13 @@ def Agilysis_extract_raw_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     `pd.DataFrame`
         Revenue section of the Agilysis Report
     `pd.DataFrame`
-        Department section of the Agilysis Report
-    `pd.DataFrame`
         Settlement section of the Agilysis Report
-
+    `pd.DataFrame`
+        Department section of the Agilysis Report
+    
     Examples
     --------
-    >>> revenue_df, department_df, settlement_df = Agilysis_extract_raw_data(Agilysis_report)
+    >>> revenue_df, settlement_df, department_df = Agilysis_extract_raw_data(Agilysis_report)
 
     See Also
     --------
@@ -48,10 +48,15 @@ def Agilysis_extract_raw_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     # storage for the 3 dataframes
     agilysis_dfs: list[pd.DataFrame, pd.DataFrame, pd.DataFrame] = []
 
-    # extract date of report
-    report_date = datetime.strptime(data.columns[13], '%d %B %Y')
-    
-    
+    # find and extract date of report
+    for cell in data.columns:
+        try:
+            report_date = datetime.strptime(cell, '%d %B %Y')
+            break
+
+        except ValueError:
+            pass
+
     """Daily Food and Beverage Report"""
     # extract food and beverage portion (first table), grab the rows between 'Avg Check' and 'Settlement'
     first_col: list = data['Daily Food and Beverage and Other Revenue Report'].values.tolist()
@@ -84,14 +89,7 @@ def Agilysis_extract_raw_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     agilysis_dfs.append(pd.DataFrame(joint_dfs.sum(axis=1)).T)
     agilysis_dfs.append(pd.DataFrame(joint_dfs.sum(axis=0)).T)
 
-    # mend departments df to include future departments
-    if len(agilysis_dfs[2].columns) != len(departments):
-        # get missing deptartment
-        missing_departments = set(departments) - set(agilysis_dfs[2].columns)
-
-        # mend departments df
-        for dept in missing_departments:
-            agilysis_dfs[2][dept] = [0]
+    agilysis_dfs[2] = agilysis_dfs[2][[col for col in agilysis_dfs[2].columns if pd.notna(col)]]
 
 
     """Add 'Date' column to all dataframes"""
