@@ -1,0 +1,38 @@
+"""
+This file serves as a template and example on the usage of the various data
+extraction and processing functions and classes provided by the module. This
+template contains a full showcase of such functionality, and also acts as a 
+convenient source to copy paste (Ctrl C Ctrl V) from.
+"""
+
+
+# Imports
+from __future__ import annotations
+
+import os
+from joblib.parallel import Parallel, delayed
+
+"""
+Add amara directory to system path and import. Optionally if you're using the 
+Visual Studio Code editor, consider adding this:
+{
+    "python.analysis.extraPaths": [
+        "./amara-dev"
+    ]
+}
+to your .vscode/settings.json folder in your working directory to enable syntax
+highlighting 
+"""
+from importlib import reload
+import sys; sys.path.append('../amara-dev')
+import amara; reload(amara)
+
+
+
+
+def main():
+    """Agilysis Files"""
+
+
+if __name__ == '__main__':
+    main()
