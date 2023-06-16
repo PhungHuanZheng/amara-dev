@@ -13,9 +13,6 @@ import calendar
 
 import pandas as pd
 
-from amara.static.branches import hotels
-departments = hotels['ASIN']['Agilysis']
-
 
 def Agilysis_extract_raw_data(data: pd.DataFrame) -> list[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
