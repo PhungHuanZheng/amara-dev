@@ -184,11 +184,39 @@ class TimeSeriesDataset:
         return_value = __callback(*datasets)
         return return_value.loc[(return_value.index >= self.__date_range.start_date) & (return_value.index <= self.__date_range.end_date)]
         
+    def consolidate(self, dataset_ids: list[int], columns: list[list[str]]) -> pd.DataFrame:
+        """
+        Consolidates unified datasets passed in `__init__`, indexed by `datasets_id` into
+        one DataFrame. Specifiy columns by passing lists of column names, an associative
+        list with `dataset_ids`.
 
+        Parameters
+        ----------
+        `dataset_ids` : `list[int]`
+            Indexes of datasets to use in consolidation. Follows order in which the datasets 
+            were passed in `__init__`.
+        `columns` : `list[list[str]]`
+            2D list of column names specifying which columns to extract from which dataset. 
+            Associative list where the first list in `columns` corresponds to the first dataset
+            in `dataset_ids`.
+
+        Returns
+        -------
+        `pd.DataFrame`
+            Single consolidated DataFrame object with datetime index.
+
+        Examples
+        --------
+        >>> TSDataset = TimeSeriesDataset(datasets=[df1, df2], datetime_cols=['date1', 'date2'])
+        >>> TSDataset_consolidated = TSDataset.consolidate(dataset_ids=[1, 2], 
+        ...                                                columns=[
+        ...                                                    ['df1_col1', 'df1_col2', 'df1_col4'],
+        ...                                                    ['df2_col1', 'df2_col5']
+        ...                                                ])
+        """
 
         
-    def consolidate(self) -> pd.DataFrame:
-        pass
+
 
 
     
