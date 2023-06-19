@@ -59,6 +59,10 @@ class ARIMAWrapper:
         # init progress tracker
         steps_count = len(p_values) * len(d_values) * len(q_values)
         tracker = SingleProgressBar(steps_count, bar_length=100)
+        passes, failures = 0, 0
+
+        # track time taken
+        start = time.perf_counter()
 
         # exhaustive search over values
         for p in p_values:
@@ -67,9 +71,6 @@ class ARIMAWrapper:
                     
                     # in case of ARIMA fitting error
                     try:
-                        # track time taken
-                        start = time.perf_counter()
-
                         # build model
                         model = ARIMA(self.__train_target, exog=self.__train_exog, order=(p, d, q), freq='D', enforce_invertibility=True, enforce_stationarity=True)
                         model_fit = model.fit(method='innovations_mle')
@@ -78,7 +79,13 @@ class ARIMAWrapper:
                         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
                         full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
 
+                        passes += 1
+
                     except Exception:
+                        failures += 1
                         pass
 
                     tracker.update()
+
+        # print status report
+        print(F'\nPasses: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')

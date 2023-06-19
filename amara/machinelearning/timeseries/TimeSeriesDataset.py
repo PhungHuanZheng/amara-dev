@@ -386,15 +386,12 @@ class TimeSeriesDataset:
         `pd.DataFrame | None`
             `pd.DataFrame` if not `inplace` else `None`
         """
-        print(self.data.columns)
+
         # check that bool mask passed is the same length as columns
         if len(bool_mask) != len(self.data.columns):
             raise ValueError(f'Boolean mask ({len(bool_mask)}) and consolidated data\'s columns ({len(self.data.columns)}) are of different lengths.')
-        
-        # init dataframe to change
+
         target_df = self.__consolidated_data.copy(deep=True)
-        if inplace:
-            target_df = self.__consolidated_data
 
         # iterate over columns
         for i, column in enumerate(self.data):
@@ -402,11 +399,16 @@ class TimeSeriesDataset:
 
             # if more than 0.05 and want to diff
             if p_value > 0.05 and bool_mask[i] is True:
-                column_data = self.data[column].values
+                column_data = self.data[column]
 
                 while adfuller(column_data)[1] > 0.05:
                     column_data = diff(column_data)
+                    column_data = [None] + column_data.tolist()
+                    column_data = pd.Series(column_data, index=self.data.index).interpolate('time')
+                    column_data.fillna(column_data.mean(), inplace=True)
 
                 target_df[column] = column_data
 
-        print(target_df)
+        if not inplace:
+            return target_df
+        self.__consolidated_data = target_df
