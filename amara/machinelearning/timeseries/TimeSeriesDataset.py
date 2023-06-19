@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import warnings
 from typing import Literal, Callable, TypeVar
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from dataclasses import dataclass
+from calendar import isleap
 
 import pandas as pd
 
 from amara.machinelearning.timeseries.preprocessing import create_datetime_index
-from amara._errors import NotInitiated
+from amara._errors import NotInitiatedError
 
 T = TypeVar('T', pd.Series, pd.DataFrame)
 
@@ -98,12 +101,17 @@ class TimeSeriesDataset:
         """
         Consolidated data suitable for input to a time series forecasting model. Only
         available after call to `TimeSeriesDataset.consolidate`.
+
+        Raises
+        ------
+        `NotInitiatedError`:
+            Only available after call to `TimeSeriesDataset.consolidate`.
         """
 
         # check if data has been consolidated
         if self.__consolidated_data is None:
             class_name = self.__class__.__name__
-            raise NotInitiated(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
+            raise NotInitiatedError(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
         
         return self.__consolidated_data
 
@@ -259,18 +267,79 @@ class TimeSeriesDataset:
         `data` : `pd.Series`
             Pandas Series object with new data. Must be of the same length as the 
             current consolidated date range.
+
+        Raises
+        ------
+        `NotInitiatedError`:
+            Only available after call to `TimeSeriesDataset.consolidate`.
+
+        See Also
+        --------
+        `TimeSeriesDataset.data` : Consolidated time series data
         """
             
-        # check if data has been consolidated
-        if self.__consolidated_data is None:
-            class_name = self.__class__.__name__
-            raise NotInitiated(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
-        
+        # check if data has been consolidated by trying to call TimeSeriesDataset.data
+        self.data
+
         # add new column
-        self.__consolidated_data[name] = data.values
+        self.data[name] = data.values
 
+    def split(self, split_date: datetime, train_months: int, forecast_months: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Splits the consolidated data into train and forecast data, split on `split_date`
+        passed, usually today's date. Only available after call to `TimeSeriesDataset.consolidate`.
+        Train data is inclusive of `split_date`.
 
+        Parameters
+        ----------
+        `split_date` : `datetime`
+            "Center" date for splitting consolidated data.
+        `train_months` : `int`
+            How many months ago till `split_date` to use as training data
+        `forecast_months` : `int`
+            How many months after from today to use as forecast data
 
+        Returns
+        -------
+        `pd.DataFrame`
+            Train data.
+        `pd.DataFrame`
+            Forecast/test data.
+
+        Raises
+        ------
+        `NotInitiatedError`:
+            Only available after call to `TimeSeriesDataset.consolidate`.
+
+        Warnings
+        --------
+        `UserWarning`:
+            If full train or forecast months are not available in unified consolidated data.
+
+        See Also
+        --------
+        `TimeSeriesDataset.data` : Consolidated time series data
+        """
+
+        # get date boundaries
+        train_start = split_date - relativedelta(months=train_months)
+        forecast_end = split_date + relativedelta(months=forecast_months)
+
+        # split data while also checking if consolidated
+        train_data = self.data.loc[(self.data.index >= train_start) & (self.data.index <= split_date)]
+        forecast_data = self.data.loc[(self.data.index > split_date) & (self.data.index <= forecast_end)]
+
+        # check if split data is actually at the requested date bounds
+        train_days_off = (train_data.index[0] - train_start).days + 1
+        forecast_days_off = (forecast_end - forecast_data.index[-1]).days
+
+        # send warnings if doesnt match exact date range specified
+        if train_days_off > 0:
+            warnings.warn(f'Available unified dates for training are less than requested by {train_days_off} days.', UserWarning)
+        if forecast_days_off > 0:
+            warnings.warn(f'Available unified dates for forecasting are less than requested by {forecast_days_off} days.', UserWarning)
+
+        return train_data, forecast_data
     
 
         
