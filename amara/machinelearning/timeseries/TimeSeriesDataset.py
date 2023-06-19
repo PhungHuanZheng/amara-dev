@@ -37,6 +37,10 @@ class TimeSeriesDataset:
             if max_date < self.__date_range.end_date:
                 self.__date_range.end_date = max_date
 
+        # slice datasets to only include dates in date range
+        for i, data in enumerate(self.__datasets):
+            self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
+            
     @property
     def date_range(self) -> _DateRange:
         return self.__date_range
