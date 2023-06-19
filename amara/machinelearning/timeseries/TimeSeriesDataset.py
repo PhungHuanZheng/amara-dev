@@ -171,7 +171,9 @@ class TimeSeriesDataset:
             Generic type, same type returned by `__callback` passed.
         """
 
-        datasets = [self.__datasets[id_] for id_ in input_ids]
+        datasets_used = self.__initial_datasets if use_initial else self.__datasets
+        datasets = [datasets_used[id_] for id_ in input_ids]
+        
         return __callback(*datasets)
 
         
