@@ -30,15 +30,29 @@ class TimeSeriesDataset:
     `date_range` : `_DateRange`
         Unified date range of all DataFrames passed to `__init__`. Has attributes 
         `start_date` and `end_date`.
+    `data` : `pd.DataFrame`
+        Consolidated data with unified date range, provided by a call to `TimeSeriesDataset.consolidate`
+        with appropriate arguments
 
     Methods
     -------
     `last_valid_year`:
         Returns the last valid year of the dataset id passed to it based on all valid
         years for that dataset.
-    `apply`
+    `apply`:
         Applies a callback passed on any number of datasets specifed by their ids. Returns
         data altered/modified by the callback.
+    `consolidate`:
+        Consolidates unified datasets passed in `__init__`, indexed by `datasets_id` into
+        one DataFrame. Specifiy columns by passing lists of column names, an associative
+        list with `dataset_ids`. Provides access to `TimeSeriesDataset.data`, `TimeSeriesDataset.append`
+        and `TimeSeriesDataset.split`.
+    `append`:
+        Appends a new data column to previously consolidated data. Data passed must be a `pd.Series`
+        object with a datetime index.
+    `split`
+        Splits the consolidate data into train and forecast on `split_date` passed. Train data
+        is inclusive of `split_date` and forecast is exclusive of `split_date`.
     """
 
     def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str], removed_years: tuple[int] = None) -> None:
@@ -330,13 +344,13 @@ class TimeSeriesDataset:
         forecast_data = self.data.loc[(self.data.index > split_date) & (self.data.index <= forecast_end)]
 
         # check if split data is actually at the requested date bounds
-        train_days_off = (train_data.index[0] - train_start).days + 1
+        train_days_off = (train_data.index[0] - train_start).days
         forecast_days_off = (forecast_end - forecast_data.index[-1]).days
 
         # send warnings if doesnt match exact date range specified
-        if train_days_off > 0:
+        if train_days_off != 0:
             warnings.warn(f'Available unified dates for training are less than requested by {train_days_off} days.', UserWarning)
-        if forecast_days_off > 0:
+        if forecast_days_off != 0:
             warnings.warn(f'Available unified dates for forecasting are less than requested by {forecast_days_off} days.', UserWarning)
 
         return train_data, forecast_data
