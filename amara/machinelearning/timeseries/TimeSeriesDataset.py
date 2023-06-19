@@ -229,7 +229,7 @@ class TimeSeriesDataset:
         return_value = __callback(*datasets)
         return return_value.loc[(return_value.index >= self.__date_range.start_date) & (return_value.index <= self.__date_range.end_date)]
         
-    def consolidate(self, dataset_ids: list[int], columns: list[list[str]]) -> None:
+    def consolidate(self, dataset_ids: list[int], columns: list[list[str]], as_names: list[list[str]] = None) -> None:
         """
         Consolidates unified datasets passed in `__init__`, indexed by `datasets_id` into
         one DataFrame. Specifiy columns by passing lists of column names, an associative
@@ -244,6 +244,8 @@ class TimeSeriesDataset:
             2D list of column names specifying which columns to extract from which dataset. 
             Associative list where the first list in `columns` corresponds to the first dataset
             in `dataset_ids`.
+        `as_names` : `list[list[str]]`
+            2D list of strings as new column names, acts as associative list with `columns` passed.
 
         Returns
         -------
@@ -380,7 +382,27 @@ class TimeSeriesDataset:
         `pd.DataFrame | None`
             `pd.DataFrame` if not `inplace` else `None`
         """
+        print(self.data.columns)
+        # check that bool mask passed is the same length as columns
+        if len(bool_mask) != len(self.data.columns):
+            raise ValueError(f'Boolean mask ({len(bool_mask)}) and consolidated data\'s columns ({len(self.data.columns)}) are of different lengths.')
         
+        # init dataframe to change
+        target_df = self.__consolidated_data.copy(deep=True)
+        if inplace:
+            target_df = self.__consolidated_data
+
         # iterate over columns
-        for column in self.data:
-            print(adfuller(self.data[column])[1])
+        for i, column in enumerate(self.data):
+            p_value = adfuller(self.data[column])[1]
+
+            # if more than 0.05 and want to diff
+            if p_value > 0.05 and bool_mask[i] is True:
+                column_data = self.data[column].values
+
+                while adfuller(column_data)[1] > 0.05:
+                    column_data = diff(column_data)
+
+                target_df[column] = column_data
+
+        print(target_df)
