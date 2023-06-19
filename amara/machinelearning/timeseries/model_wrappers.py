@@ -63,7 +63,7 @@ class ARIMAWrapper:
         passes, failures = 0, 0
 
         # passed models
-        orders: dict[tuple[int, int, int], list[float]]
+        orders: dict[tuple[int, int, int], list[float]] = {}
 
         # track time taken
         start = time.perf_counter()
@@ -84,14 +84,16 @@ class ARIMAWrapper:
                         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
                         full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
 
-                        plt.figure()
-                        plt.plot(outsample_fc.predicted_mean)
-                        plt.savefig('x.png')
+                        
 
                         # check if values <0 or >100
                         print(outsample_fc.predicted_mean.min(), outsample_fc.predicted_mean.max())
                         if full_pred.apply(lambda x: True if x < 0 or x > 100 else False).any():
                             raise Exception
+                        
+                        plt.figure()
+                        plt.plot(outsample_fc.predicted_mean)
+                        plt.savefig('x.png')
                         
                         orders[(p, d, q)] = []
                         passes += 1
