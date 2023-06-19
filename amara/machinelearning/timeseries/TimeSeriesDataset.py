@@ -59,6 +59,9 @@ class TimeSeriesDataset:
         self.__datetime_cols = datetime_cols
         self.__valid_years: list[list[int]] = []
 
+        # consolidated data
+        self.__consolidated_data = None
+
         # make datetime columns for datasets passed, remove years if needed
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = create_datetime_index(data, self.__datetime_cols[i], format='auto', drop=True)
@@ -89,6 +92,16 @@ class TimeSeriesDataset:
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
             
+    @property
+    def data(self) -> pd.DataFrame:
+        """
+        Consolidated data suitable for input to a time series forecasting model. Only
+        available after call to `TimeSeriesDataset.consolidate`.
+        """
+
+        if self.__consolidated_data is None:
+            raise 
+
     @property
     def date_range(self) -> _DateRange:
         """
@@ -215,7 +228,21 @@ class TimeSeriesDataset:
         ...                                                ])
         """
 
-        
+        # init return dataframe as dict
+        consolidated_df: dict[str, list[float]] = {}
+
+        # iterate over datasets
+        for i, id_ in enumerate(dataset_ids):
+            dataset = self.__datasets[id_]
+            
+            # iterate over columns
+            for column in columns[i]:
+                # add to consolidated dict
+                consolidated_df[column] = dataset[column]
+
+        return pd.DataFrame(consolidated_df)
+            
+
 
 
 
