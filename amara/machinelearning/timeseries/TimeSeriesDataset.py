@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from typing import Literal
 from datetime import datetime
+from dataclasses import dataclass
 
 import pandas as pd
 
 from amara.machinelearning.timeseries.preprocessing import create_datetime_index
 
+@dataclass
+class _DateRange:
+    start_date: datetime
+    end_date: datetime
 
 class TimeSeriesDataset:
     def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str]) -> None:
@@ -32,6 +37,8 @@ class TimeSeriesDataset:
             if max_date < self.__date_range[1]:
                 self.__date_range[1] = max_date
 
-        print(self.__date_range)
+    @property
+    def date_range()    
+    
 
         
