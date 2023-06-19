@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from amara.machinelearning.timeseries.preprocessing import create_datetime_index
+from amara._errors import NotInitiated
 
 T = TypeVar('T', pd.Series, pd.DataFrame)
 
@@ -99,8 +100,12 @@ class TimeSeriesDataset:
         available after call to `TimeSeriesDataset.consolidate`.
         """
 
+        # check if data has been consolidated
         if self.__consolidated_data is None:
-            raise 
+            class_name = self.__class__.__name__
+            raise NotInitiated(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
+        
+        return self.__consolidated_data
 
     @property
     def date_range(self) -> _DateRange:
@@ -240,7 +245,7 @@ class TimeSeriesDataset:
                 # add to consolidated dict
                 consolidated_df[column] = dataset[column]
 
-        return pd.DataFrame(consolidated_df)
+        self.__consolidated_data = pd.DataFrame(consolidated_df)
             
 
 
