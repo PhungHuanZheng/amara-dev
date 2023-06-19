@@ -202,7 +202,7 @@ class TimeSeriesDataset:
         return_value = __callback(*datasets)
         return return_value.loc[(return_value.index >= self.__date_range.start_date) & (return_value.index <= self.__date_range.end_date)]
         
-    def consolidate(self, dataset_ids: list[int], columns: list[list[str]]) -> pd.DataFrame:
+    def consolidate(self, dataset_ids: list[int], columns: list[list[str]]) -> None:
         """
         Consolidates unified datasets passed in `__init__`, indexed by `datasets_id` into
         one DataFrame. Specifiy columns by passing lists of column names, an associative
@@ -246,8 +246,20 @@ class TimeSeriesDataset:
                 consolidated_df[column] = dataset[column]
 
         self.__consolidated_data = pd.DataFrame(consolidated_df)
-            
 
+    def append(self, name: str, data: pd.Series) -> None:
+        """
+        Adds a new column name and data to consolidated data. Only available after 
+        call to `TimeSeriesDataset.consolidate`.
+        """
+            
+        # check if data has been consolidated
+        if self.__consolidated_data is None:
+            class_name = self.__class__.__name__
+            raise NotInitiated(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
+        
+        # add new column
+        self.__consolidated_data[name] = data.values
 
 
 
