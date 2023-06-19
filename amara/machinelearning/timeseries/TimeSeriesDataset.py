@@ -9,14 +9,14 @@ from amara.machinelearning.timeseries.preprocessing import create_datetime_index
 
 
 class TimeSeriesDataset:
-    def __init__(self, datasets: tuple[pd.DataFrame], datetime_cols: tuple[str]) -> None:
+    def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str]) -> None:
         # basic init
-        self.__datasets = datasets
+        self.__datasets = list(datasets)
         self.__datetime_cols = datetime_cols
 
         # make datetime columns for datasets passed
         for i, data in enumerate(self.__datasets):
-            self.__datasets[i] = create_datetime_index(data, self.__datetime_cols[i], drop=True)
+            self.__datasets[i] = create_datetime_index(data, self.__datetime_cols[i], format='auto', drop=True)
 
         # unify date range for all datasets
         self.__date_range = [datetime.min, datetime.max]
@@ -29,7 +29,7 @@ class TimeSeriesDataset:
             if min_date > self.__date_range[0]:
                 self.__date_range[0] = min_date
 
-            if max_date > self.__date_range[1]:
+            if max_date < self.__date_range[1]:
                 self.__date_range[1] = max_date
 
         print(self.__date_range)

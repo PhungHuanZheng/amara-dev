@@ -40,9 +40,9 @@ def create_datetime_index(data: pd.DataFrame, datetime_col: str, format: str | L
     # parse datetime column
     if format is not None:
         if format == 'auto':
-            datetime_index = pd.to_datetime(data[datetime_col], infer_datetime_format=True)
+            datetime_index = pd.to_datetime(data[datetime_col], infer_datetime_format=True, dayfirst=True)
         else:
-            datetime_index = pd.to_datetime(data[datetime_col], format=format)
+            datetime_index = pd.to_datetime(data[datetime_col], format=format, dayfirst=True)
     else:
         datetime_index = data[datetime_col]
     
