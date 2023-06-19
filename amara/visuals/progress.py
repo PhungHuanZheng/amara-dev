@@ -105,6 +105,6 @@ class SingleProgressBar:
         print(f'\r{done_section}{tbd_section} {percent_progress:.2f}%', end='')
         self.__current_step += 1
 
-        # if self.__current_step == self.__steps:
-        #     print()
+        if self.__current_step == self.__steps:
+            print()
     

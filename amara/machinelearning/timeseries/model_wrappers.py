@@ -88,4 +88,4 @@ class ARIMAWrapper:
                     tracker.update()
 
         # print status report
-        print(F'\nPasses: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
+        print(F'Passes: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
