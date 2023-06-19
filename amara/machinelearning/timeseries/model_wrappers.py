@@ -10,6 +10,10 @@ from __future__ import annotations
 
 import time
 
+import warnings; from statsmodels.tsa.base.tsa_model import ValueWarning
+warnings.filterwarnings(action='ignore', category=UserWarning)
+warnings.filterwarnings(action='ignore', category=ValueWarning)
+
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 
@@ -42,11 +46,11 @@ class ARIMAWrapper:
         self.__forecast = forecast
 
         self.__train_target = train[target]
-        self.__train_exog = train.drop(target)
+        self.__train_exog = train.drop(target, axis=1)
 
         if target in target:
             self.__forecast_target = forecast[target]
-            self.__forecast_exog = forecast.drop('target', axis=1)
+            self.__forecast_exog = forecast.drop(target, axis=1)
         else:
             self.__forecast_target = None
             self.__forecast_exog = forecast
@@ -76,3 +80,5 @@ class ARIMAWrapper:
 
                     except Exception:
                         pass
+
+                    tracker.update()
