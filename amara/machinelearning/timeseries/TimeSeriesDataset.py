@@ -16,7 +16,43 @@ class _DateRange:
     end_date: datetime
 
 class TimeSeriesDataset:
+    """
+    Handles creation of a time series dataset suitable for time series forecasting 
+    with `statsmodels` python package, including unification of date ranges and
+    creation of datetime index.
+
+    Attributes
+    ----------
+    `date_range` : `_DateRange`
+        Unified date range of all DataFrames passed to `__init__`. Has attributes 
+        `start_date` and `end_date`.
+
+    Methods
+    -------
+    `last_valid_year`:
+        Returns the last valid year of the dataset id passed to it based on all valid
+        years for that dataset.
+    `apply`
+        Applies a callback passed on any number of datasets specifed by their ids. Returns
+        data altered/modified by the callback.
+    """
+
     def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str], removed_years: tuple[int] = None) -> None:
+        """
+        Creates an instance of `TimeSeriesDataset`.
+
+        Parameters
+        ----------
+        `datasets` : `list[pd.DataFrame]`
+            List of DataFrames whose data is used to create the time series dataset.
+        `datetime_cols` : `list[str]`
+            List of datetime columns of the datasets passed. Associated list where the first
+            datetime column corresponds to the first DataFrame passed.
+        `removed_years` : `tuple[int]`, `default=None`
+            Tuple of years to ignore, be it because of anomalous data or undesirable distribution
+            of values.
+        """
+        
         # basic init
         self.__initial_datasets = [df.copy(deep=True) for df in datasets]
         self.__datasets = [df.copy(deep=True) for df in datasets]
@@ -55,9 +91,27 @@ class TimeSeriesDataset:
             
     @property
     def date_range(self) -> _DateRange:
+        """
+        Unified date range of all DataFrames passed to `__init__`. Has attributes 
+        `start_date` and `end_date`.
+        """
+
         return self.__date_range
     
     def last_valid_year(self, dataset_id: int, columns: list[str] = None) -> pd.DataFrame | pd.Series:
+        """
+        Returns the last valid year of the dataset id passed to it based on all valid
+        years for that dataset.
+
+        Parameters
+        ----------
+        `dataset_id` : `int`
+            Index of DataFrame to derive last valid year of.
+        `columns` : `list[str]`, `default=None`
+            List of columns to keep from the dataframe queried. `None` to keep and
+            return all columns.
+        """
+
         # pull info for dataset queried
         data = self.__initial_datasets[dataset_id].copy(deep=True)
         data_valid_years = self.__valid_years[dataset_id][::-1]
