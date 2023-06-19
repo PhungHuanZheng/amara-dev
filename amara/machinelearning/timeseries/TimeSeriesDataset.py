@@ -147,7 +147,7 @@ class TimeSeriesDataset:
             return LY_data[columns]
         return LY_data
     
-    def apply(self, __callback: Callable[..., T], input_ids: list[int], use_initial: bool = False) -> T:
+    def apply(self, __callback: Callable[..., T], input_ids: list[int], use_initial: bool = False, unify: bool = True) -> T:
         """
         Applies a function over any number of available datasets. Can choose 
         whether to use datasets before or after date range unification. Output 
@@ -164,6 +164,9 @@ class TimeSeriesDataset:
             as integers are in the same ordered when passed to `__init__`.
         `use_initial` : `bool`, `default=False`
             Whether to use datasets before or after date range unification.
+        `unify` : `bool`, `default=True`
+            Whether to unify the date range of the output of `__callback` before returning. If
+            `True`, output of `__callback` must have a datetime index.
 
         Returns
         -------
@@ -173,8 +176,14 @@ class TimeSeriesDataset:
 
         datasets_used = self.__initial_datasets if use_initial else self.__datasets
         datasets = [datasets_used[id_] for id_ in input_ids]
+
+        if not unify:
+            return __callback(*datasets)
         
-        return __callback(*datasets)
+        return_value = __callback(*datasets)
+        return return_value.loc[(return_value.index >= self.__date_range.start_date) & (return_value.index <= self.__date_range.end_date)]
+        
+
 
         
     def consolidate(self) -> pd.DataFrame:
