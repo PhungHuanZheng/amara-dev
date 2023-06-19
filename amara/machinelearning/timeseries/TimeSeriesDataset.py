@@ -244,7 +244,7 @@ class TimeSeriesDataset:
             2D list of column names specifying which columns to extract from which dataset. 
             Associative list where the first list in `columns` corresponds to the first dataset
             in `dataset_ids`.
-        `as_names` : `list[list[str]]`
+        `as_names` : `list[list[str]]`, `default=None`
             2D list of strings as new column names, acts as associative list with `columns` passed.
 
         Returns
