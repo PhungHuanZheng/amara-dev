@@ -93,10 +93,11 @@ class TimeSeriesDataset:
             return LY_data[columns]
         return LY_data
     
-    def apply(self, __callback: Callable[..., T], input_ids: list[int]) -> T:
+    def apply(self, __callback: Callable[..., T], input_ids: list[int], use_initial: bool = False) -> T:
         """
-        Applies a function over any number of available datasets after unification of 
-        date ranges. Output is the same as the `__callback` passed.
+        Applies a function over any number of available datasets. Can choose 
+        whether to use datasets before or after date range unification. Output 
+        is the same as the `__callback` passed.
 
         Parameters
         ----------
@@ -107,7 +108,17 @@ class TimeSeriesDataset:
         `input_ids` : `list[int]`
             Specify which datasets are to be input to the `__callback` passed. Indexes passed
             as integers are in the same ordered when passed to `__init__`.
+        `use_initial` : `bool`, `default=False`
+            Whether to use datasets before or after date range unification.
+
+        Returns
+        -------
+        `T`
+            Generic type, same type returned by `__callback` passed.
         """
+
+        datasets = [self.__datasets[id_] for id_ in input_ids]
+        return __callback(*datasets)
 
         
     def consolidate(self) -> pd.DataFrame:
