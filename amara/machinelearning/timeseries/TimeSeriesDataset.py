@@ -262,6 +262,10 @@ class TimeSeriesDataset:
         ...                                                ])
         """
 
+        # mend as_names
+        if as_names is None:
+            as_names = columns
+
         # init return dataframe as dict
         consolidated_df: dict[str, list[float]] = {}
 
@@ -270,9 +274,9 @@ class TimeSeriesDataset:
             dataset = self.__datasets[id_]
             
             # iterate over columns
-            for column in columns[i]:
+            for j, column in enumerate(columns[i]):
                 # add to consolidated dict
-                consolidated_df[column] = dataset[column]
+                consolidated_df[as_names[i][j]] = dataset[column]
 
         self.__consolidated_data = pd.DataFrame(consolidated_df)
 
