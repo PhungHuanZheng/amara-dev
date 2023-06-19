@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from calendar import isleap
 
 import pandas as pd
+from statsmodels.tsa.statespace.tools import diff
+from statsmodels.tsa.stattools import adfuller
 
 from amara.machinelearning.timeseries.preprocessing import create_datetime_index
 from amara._errors import NotInitiatedError
@@ -53,6 +55,9 @@ class TimeSeriesDataset:
     `split`
         Splits the consolidate data into train and forecast on `split_date` passed. Train data
         is inclusive of `split_date` and forecast is exclusive of `split_date`.
+    `auto_diff`
+        Auto differences the data based on their p-values returned by the `adfuller` test. Pass a 
+        boolean mask to control whether a column is to be differenced.
     """
 
     def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str], removed_years: tuple[int] = None) -> None:
@@ -355,5 +360,27 @@ class TimeSeriesDataset:
 
         return train_data, forecast_data
     
-
+    def auto_diff(self, bool_mask: list[bool], inplace: bool = False) -> pd.DataFrame | None:
+        """
+        Auto differences the data based on their p-values returned by the `adfuller` test. Pass a 
+        boolean mask to control whether a column is to be differenced. Note that the `bool_mask` 
+        follows the same order in which the consolidated data `TimeSeriesDataset.data` was created
+        through `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.append`.
         
+        Parameters
+        ----------
+        `bool_mask` : `list[bool]`
+            Boolean mask to control whether a column is to be differenced.
+        `inplace` : `bool`, `default=False`
+            Boolean to control if new differenced data should replace the current data or 
+            return a copy
+
+        Returns
+        -------
+        `pd.DataFrame | None`
+            `pd.DataFrame` if not `inplace` else `None`
+        """
+        
+        # iterate over columns
+        for column in self.data:
+            print(adfuller(self.data[column])[1])
