@@ -24,21 +24,22 @@ class TimeSeriesDataset:
             self.__datasets[i] = create_datetime_index(data, self.__datetime_cols[i], format='auto', drop=True)
 
         # unify date range for all datasets
-        self.__date_range = [datetime.min, datetime.max]
+        self.__date_range = _DateRange(datetime.min, datetime.max)
         for data in self.__datasets:
             # get date range
             min_date = data.index[0]
             max_date = data.index[-1]
 
             # compare against current, change if necessary
-            if min_date > self.__date_range[0]:
-                self.__date_range[0] = min_date
+            if min_date > self.__date_range.start_date:
+                self.__date_range.start_date = min_date
 
-            if max_date < self.__date_range[1]:
-                self.__date_range[1] = max_date
+            if max_date < self.__date_range.end_date:
+                self.__date_range.end_date = max_date
 
     @property
-    def date_range()    
+    def date_range(self) -> _DateRange:
+        return self.__date_range
     
 
         
