@@ -366,7 +366,7 @@ class TimeSeriesDataset:
 
         return train_data, forecast_data
     
-    def auto_diff(self, bool_mask: list[bool], inplace: bool = False) -> pd.DataFrame | None:
+    def auto_diff(self, bool_mask: list[bool], force: bool = False, inplace: bool = False) -> pd.DataFrame | None:
         """
         Auto differences the data based on their p-values returned by the `adfuller` test. Pass a 
         boolean mask to control whether a column is to be differenced. Note that the `bool_mask` 
@@ -377,6 +377,8 @@ class TimeSeriesDataset:
         ----------
         `bool_mask` : `list[bool]`
             Boolean mask to control whether a column is to be differenced.
+        `force` : `bool`, `default=False`
+            Boolean to control if differencing should be forced by the `boolean_mask` passed.
         `inplace` : `bool`, `default=False`
             Boolean to control if new differenced data should replace the current data or 
             return a copy
@@ -398,7 +400,7 @@ class TimeSeriesDataset:
             p_value = adfuller(self.data[column])[1]
 
             # if more than 0.05 and want to diff
-            if p_value > 0.05 and bool_mask[i] is True:
+            if (force or p_value > 0.05) and bool_mask[i] is True:
                 column_data = self.data[column]
 
                 while adfuller(column_data)[1] > 0.05:

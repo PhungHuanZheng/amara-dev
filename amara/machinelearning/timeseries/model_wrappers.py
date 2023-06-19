@@ -15,6 +15,7 @@ warnings.filterwarnings(action='ignore', category=UserWarning)
 warnings.filterwarnings(action='ignore', category=ValueWarning)
 
 import pandas as pd
+import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 
 from amara.visuals.progress import SingleProgressBar
@@ -61,6 +62,9 @@ class ARIMAWrapper:
         tracker = SingleProgressBar(steps_count, bar_length=100)
         passes, failures = 0, 0
 
+        # passed models
+        orders: dict[tuple[int, int, int], list[float]]
+
         # track time taken
         start = time.perf_counter()
 
@@ -75,15 +79,26 @@ class ARIMAWrapper:
                         model = ARIMA(self.__train_target, exog=self.__train_exog, order=(p, d, q), freq='D', enforce_invertibility=True, enforce_stationarity=True)
                         model_fit = model.fit(method='innovations_mle')
 
+                        # get predictions
                         insample_pred = model_fit.predict()
                         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
                         full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
 
+                        plt.figure()
+                        plt.plot(outsample_fc.predicted_mean)
+                        plt.savefig('x.png')
+
+                        # check if values <0 or >100
+                        print(outsample_fc.predicted_mean.min(), outsample_fc.predicted_mean.max())
+                        if full_pred.apply(lambda x: True if x < 0 or x > 100 else False).any():
+                            raise Exception
+                        
+                        orders[(p, d, q)] = []
                         passes += 1
 
-                    except Exception:
+                    except Exception as e:
+                        print(e)
                         failures += 1
-                        pass
 
                     tracker.update()
 
