@@ -251,6 +251,14 @@ class TimeSeriesDataset:
         """
         Adds a new column name and data to consolidated data. Only available after 
         call to `TimeSeriesDataset.consolidate`.
+
+        Parameters
+        ----------
+        `name` : `str`
+            Name of new column.
+        `data` : `pd.Series`
+            Pandas Series object with new data. Must be of the same length as the 
+            current consolidated date range.
         """
             
         # check if data has been consolidated
