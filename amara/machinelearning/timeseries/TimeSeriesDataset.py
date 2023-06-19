@@ -151,7 +151,8 @@ class TimeSeriesDataset:
         """
         Applies a function over any number of available datasets. Can choose 
         whether to use datasets before or after date range unification. Output 
-        is the same as the `__callback` passed.
+        is the same as the `__callback` passed. Note that DataFrames passed to 
+        `__callback` have datetime indexes. To access their dates, use `dataset.index`.
 
         Parameters
         ----------
