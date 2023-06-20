@@ -17,7 +17,7 @@ warnings.filterwarnings(action='ignore', category=ValueWarning)
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model import ARIMA, ARIMAResults
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, r2_score
 
 from amara.visuals.progress import SingleProgressBar
@@ -58,7 +58,7 @@ class ARIMAWrapper:
             self.__forecast_target = None
             self.__forecast_exog = forecast
 
-    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame:
+    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame | tuple[pd.DataFrame, dict[tuple[int, int, int], ARIMAResults]]:
         """
         Exhaustively searches through the p, d and q value hyperparameters for the ARIMA 
         model and returns a DataFrame of passed models. Scores models based on their mean 
@@ -148,6 +148,8 @@ class ARIMAWrapper:
         if return_models:
             return model_results, models
         return model_results
+    
+    
     
     def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
         # build model
