@@ -66,4 +66,42 @@ class YesNoPrompt(_IUserInput):
 
             print(f'{self.__indent}Expecting "y" for yes or "n" for no, got "{choice}" instead.\n')
 
+class FreeIntegerInput(_IUserInput):
+    def __init__(self, prompt: str, bounds: tuple[int, int], unique: bool = False, indent: int = 0) -> None:
+        super().__init__(prompt)
+        self.__indent = '\t' * indent
+
+        self.__bounds = bounds
+        self.__unique = unique
+
+    def prompt(self) -> int | str | bool:
+        # collect inputs
+        print(self._prompt)
+        choices: list[int] = []
+
+        # loop for bad input
+        while True:
+            choice = input(f'{self.__indent}>>> ')
+
+            # validate input
+            try:
+                # if empty, end
+                if len(choice) == 0:
+                    return choices
+
+                choice = int(choice)
+                if choice < self.__bounds[0] or choice > self.__bounds[1]:
+                    print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.\n')
+                    continue
+                    
+                if self.__unique and choice in choices:
+                    print(f'"{choice}" is a repated choice at choice {choices.index(choice) + 1}, expecting unique inputs.')
+                    continue
+            
+                choices.append(choice)
+
+            except Exception:
+                print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.\n')
+                continue
+
 
