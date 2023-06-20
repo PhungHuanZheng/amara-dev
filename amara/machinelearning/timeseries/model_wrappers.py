@@ -17,6 +17,7 @@ warnings.filterwarnings(action='ignore', category=ValueWarning)
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, r2_score
 
 from amara.visuals.progress import SingleProgressBar
 
@@ -56,14 +57,14 @@ class ARIMAWrapper:
             self.__forecast_target = None
             self.__forecast_exog = forecast
 
-    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int]) -> dict[tuple[int, int, int], list[float]]:
+    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int]) -> pd.DataFrame:
         # init progress tracker
         steps_count = len(p_values) * len(d_values) * len(q_values)
         tracker = SingleProgressBar(steps_count, bar_length=100)
         passes, failures = 0, 0
 
         # passed models
-        orders: dict[tuple[int, int, int], list[float]] = {}
+        orders: list[list[str | float]] = []
 
         # track time taken
         start = time.perf_counter()
@@ -84,25 +85,23 @@ class ARIMAWrapper:
                         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
                         full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
 
-                        
-
                         # check if values <0 or >100
-                        print(outsample_fc.predicted_mean.min(), outsample_fc.predicted_mean.max())
                         if full_pred.apply(lambda x: True if x < 0 or x > 100 else False).any():
                             raise Exception
                         
-                        plt.figure()
-                        plt.plot(outsample_fc.predicted_mean)
-                        plt.savefig('x.png')
+                        # get model metrics based on train part
+                        MAPE = mean_absolute_percentage_error(self.__train_target, insample_pred)
+                        MAE = mean_absolute_error(self.__train_target, insample_pred)
+                        R2_SCORE = r2_score(self.__train_target, insample_pred)
                         
-                        orders[(p, d, q)] = []
+                        orders.append([(p, d, q), MAPE, MAE, R2_SCORE])
                         passes += 1
 
-                    except Exception as e:
-                        print(e)
+                    except Exception:
                         failures += 1
 
                     tracker.update()
 
         # print status report
         print(F'Passes: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
+        return pd.DataFrame(orders).rename(columns={0: 'Order', 1: 'MAPE', 2: 'MAE', 3: 'r2'})
