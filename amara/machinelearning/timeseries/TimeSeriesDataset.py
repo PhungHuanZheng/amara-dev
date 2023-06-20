@@ -141,7 +141,7 @@ class TimeSeriesDataset:
         if self.__consolidated_data is None:
             raise NotInitialisedError(f'{self.__class_name}.data_ has not been initialised. Call {self.__class_name}.consolidated with appropriate arguments.')
         
-        return self.__consolidated_data
+        return self.__consolidated_data.copy(deep=True)
 
     @property
     def date_range(self) -> _DateRange:
@@ -343,12 +343,12 @@ class TimeSeriesDataset:
         """
             
         # check if data has been consolidated by trying to call TimeSeriesDataset.data
-        self.data
+        self.data_
 
         # add new column
-        self.data[name] = data.values
+        self.__consolidated_data[name] = data.values
 
-    def split(self, split_date: datetime, train_months: int, forecast_months: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def split(self, split_date: datetime, train_months: int, forecast_months: int) -> None:
         """
         Splits the consolidated data into train and forecast data, split on `split_date`
         passed, usually today's date. Only available after call to `TimeSeriesDataset.consolidate`.
@@ -390,8 +390,8 @@ class TimeSeriesDataset:
         forecast_end = split_date + relativedelta(months=forecast_months)
 
         # split data while also checking if consolidated
-        train_data = self.data.loc[(self.data.index >= train_start) & (self.data.index <= split_date)]
-        forecast_data = self.data.loc[(self.data.index > split_date) & (self.data.index <= forecast_end)]
+        train_data = self.data_.loc[(self.data_.index >= train_start) & (self.data_.index <= split_date)]
+        forecast_data = self.data_.loc[(self.data_.index > split_date) & (self.data_.index <= forecast_end)]
 
         # check if split data is actually at the requested date bounds
         train_days_off = (train_data.index[0] - train_start).days
@@ -403,7 +403,9 @@ class TimeSeriesDataset:
         if forecast_days_off != 0:
             warnings.warn(f'Available unified dates for forecasting are less than requested by {forecast_days_off} days.', UserWarning)
 
-        return train_data, forecast_data
+        # initialize values
+        self.__train_data = train_data
+        self.__forecast_data = forecast_data
     
     def auto_diff(self, bool_mask: list[bool], force: bool = False, inplace: bool = False) -> pd.DataFrame | None:
         """
@@ -429,23 +431,23 @@ class TimeSeriesDataset:
         """
 
         # check that bool mask passed is the same length as columns
-        if len(bool_mask) != len(self.data.columns):
-            raise ValueError(f'Boolean mask ({len(bool_mask)}) and consolidated data\'s columns ({len(self.data.columns)}) are of different lengths.')
+        if len(bool_mask) != len(self.data_.columns):
+            raise ValueError(f'Boolean mask ({len(bool_mask)}) and consolidated data\'s columns ({len(self.data_.columns)}) are of different lengths.')
 
         target_df = self.__consolidated_data.copy(deep=True)
 
         # iterate over columns
         for i, column in enumerate(self.data):
-            p_value = adfuller(self.data[column])[1]
+            p_value = adfuller(self.data_[column])[1]
 
             # if more than 0.05 and want to diff
             if (force or p_value > 0.05) and bool_mask[i] is True:
-                column_data = self.data[column]
+                column_data = self.data_[column]
 
                 while adfuller(column_data)[1] > 0.05:
                     column_data = diff(column_data)
                     column_data = [None] + column_data.tolist()
-                    column_data = pd.Series(column_data, index=self.data.index).interpolate('time')
+                    column_data = pd.Series(column_data, index=self.data_.index).interpolate('time')
                     column_data.fillna(column_data.mean(), inplace=True)
 
                 target_df[column] = column_data
