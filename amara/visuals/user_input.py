@@ -91,17 +91,17 @@ class FreeIntegerInput(_IUserInput):
 
                 choice = int(choice)
                 if choice < self.__bounds[0] or choice > self.__bounds[1]:
-                    print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.\n')
+                    print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.')
                     continue
                     
                 if self.__unique and choice in choices:
-                    print(f'"{choice}" is a repated choice at choice {choices.index(choice) + 1}, expecting unique inputs.')
+                    print(f'{self.__indent}"{choice}" is a repeated choice at choice {choices.index(choice) + 1}, expecting unique inputs.')
                     continue
             
                 choices.append(choice)
 
             except Exception:
-                print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.\n')
+                print(f'{self.__indent}Expecting a whole number between {self.__bounds[0]} and {self.__bounds[1]}, got "{choice}" instead.')
                 continue
 
 

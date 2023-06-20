@@ -115,10 +115,11 @@ class TimeSeriesDataset:
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
 
-    @property
-    def today(self) -> datetime:
-        return datetime.today().date()
-            
+    def today(self, as_str: bool = False) -> datetime:
+        if not as_str:
+            return datetime.today().date()
+        return datetime.today().date().strftime('%d-%m-%Y')
+
     @property
     def data(self) -> pd.DataFrame:
         """
