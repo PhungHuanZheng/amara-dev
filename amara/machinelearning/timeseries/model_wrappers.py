@@ -63,6 +63,14 @@ class ARIMAWrapper:
         if self.__forecast_target is not None:
             return pd.concat([self.__train_target, self.__forecast_target])
         return self.__train_target
+    
+    @property
+    def forecast_length(self) -> int:
+        return len(self.__forecast)
+    
+    @property
+    def forecast_exog(self) -> pd.DataFrame:
+        return self.__forecast_exog
 
     def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame | tuple[pd.DataFrame, dict[tuple[int, int, int], ARIMAResults]]:
         """

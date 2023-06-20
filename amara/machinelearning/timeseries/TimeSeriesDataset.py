@@ -12,7 +12,7 @@ from statsmodels.tsa.statespace.tools import diff
 from statsmodels.tsa.stattools import adfuller
 
 from amara.machinelearning.timeseries.preprocessing import create_datetime_index
-from amara._errors import NotInitiatedError
+from amara._errors import NotInitialisedError
 
 T = TypeVar('T', pd.Series, pd.DataFrame)
 
