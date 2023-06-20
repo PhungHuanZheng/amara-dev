@@ -49,6 +49,9 @@ class TimeSeriesDataset:
         one DataFrame. Specifiy columns by passing lists of column names, an associative
         list with `dataset_ids`. Provides access to `TimeSeriesDataset.data_`, `TimeSeriesDataset.append`
         and `TimeSeriesDataset.split`.
+    `set_target`:
+        Internally sets the target column for the `TimeSeriesDataset` object. Only available after 
+        call to `TimeSeriesDataset.consolidate`.
     `append`:
         Appends a new data column to previously consolidated data. Data passed must be a `pd.Series`
         object with a datetime index.
@@ -338,6 +341,19 @@ class TimeSeriesDataset:
                 consolidated_df[as_names[i][j]] = dataset[column]
 
         self.__consolidated_data = pd.DataFrame(consolidated_df)
+
+    def set_target(self, target_col: str) -> None:
+        """
+        Internally sets the target column for the `TimeSeriesDataset` object. Only available after 
+        call to `TimeSeriesDataset.consolidate`.
+
+        Parameters
+        ----------
+        `target_col` : `str`
+            A column in the consolidated dataframe `TimeSeriesDataset.data_`.
+        """
+
+        self.__target = target_col
 
     def append(self, name: str, data: pd.Series) -> None:
         """
