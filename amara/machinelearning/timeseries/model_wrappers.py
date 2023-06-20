@@ -58,7 +58,7 @@ class ARIMAWrapper:
             self.__forecast_target = None
             self.__forecast_exog = forecast
 
-    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None) -> pd.DataFrame:
+    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame:
         """
         Exhaustively searches through the p, d and q value hyperparameters for the ARIMA 
         model and returns a DataFrame of passed models. Scores models based on their mean 
@@ -78,11 +78,16 @@ class ARIMAWrapper:
         `bounds` : `tuple[int, int]`, `default=None`
             Optional bounds for forecasted values. Values found not within these bounds will cause the 
             model to fail. Pass `None` for no bounds.
+        `return_models` : `bool`, `default=False`
+            Controls whether passed models are returned together with the results dataframe as a 
+            tuple.
 
         Returns
         -------
         `pd.DataFrame`
-            DataFrame of passed models and their metrics
+            DataFrame of passed models and their metrics.
+        `dict[tuple[int, int, int], ARIMAResults]`
+            if `return_models` is `True`, returns trained models.
         """
 
         # init progress tracker
@@ -92,6 +97,8 @@ class ARIMAWrapper:
 
         # passed models
         orders: list[list[str | float]] = []
+        if return_models:
+            models = {}
 
         # track time taken
         start = time.perf_counter()
@@ -121,6 +128,10 @@ class ARIMAWrapper:
                         model_results = [(p, d, q)]
                         for metric in metrics:
                             model_results.append(metric(self.__train_target, insample_pred))
+
+                        # return models if requested
+                        if return_models:
+                            models[(p, d, q)] = model_fit
                         
                         orders.append(model_results)
                         passes += 1
@@ -132,7 +143,11 @@ class ARIMAWrapper:
 
         # print status report
         print(F'Passes: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
-        return pd.DataFrame(orders).rename(columns={0: 'Order'} | {i: metric.__name__ for i, metric in enumerate(metrics, start=1)})
+        model_results = pd.DataFrame(orders).rename(columns={0: 'Order'} | {i: metric.__name__ for i, metric in enumerate(metrics, start=1)})
+
+        if return_models:
+            return model_results, models
+        return model_results
     
     def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
         # build model
