@@ -117,6 +117,7 @@ class TimeSeriesDataset:
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
 
+        self.__forecast_date = None
         self.__train_data = None
         self.__forecast_data = None
 
@@ -167,11 +168,13 @@ class TimeSeriesDataset:
         if self.__train_data is None:
             raise NotInitialisedError(f'{self.__class_name}.train_data_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
         
+        return self.__train_data
+
     @property
     def forecast_data_(self) -> pd.DataFrame:
         """
         Period of unified data used for model training. Only available after calls to 
-        `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`
+        `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`.
 
         Raises
         ------
@@ -181,7 +184,22 @@ class TimeSeriesDataset:
 
         if self.__forecast_data is None:
             raise NotInitialisedError(f'{self.__class_name}.forecast_data_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
-    
+
+        return self.__forecast_data
+
+    @property
+    def forecast_date_(self) -> str:
+        """
+        Returns the date the data is split on as a string value in the format `%d-%m-%Y` or
+        `DD-MM-YYYY`. Only available after calls to `TimeSeriesDataset.consolidate` and 
+        `TimeSeriesDataset.split`.
+        """
+
+        if self.__consolidated_data is None or self.__train_data is None or self.__forecast_data is None:
+            raise NotInitialisedError(f'{self.__class_name}.forecast_date_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
+
+        return self.__forecast_date.strftime('%d-%m-%Y')
+
     def last_valid_year(self, dataset_id: int, columns: list[str] = None) -> pd.DataFrame | pd.Series:
         """
         Returns the last valid year of the dataset id passed to it based on all valid
@@ -404,6 +422,7 @@ class TimeSeriesDataset:
             warnings.warn(f'Available unified dates for forecasting are less than requested by {forecast_days_off} days.', UserWarning)
 
         # initialize values
+        self.__forecast_date = split_date
         self.__train_data = train_data
         self.__forecast_data = forecast_data
     
