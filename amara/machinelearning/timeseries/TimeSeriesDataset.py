@@ -458,7 +458,7 @@ class TimeSeriesDataset:
         target_df = self.__consolidated_data.copy(deep=True)
 
         # iterate over columns
-        for i, column in enumerate(self.data):
+        for i, column in enumerate(self.data_):
             p_value = adfuller(self.data_[column])[1]
 
             # if more than 0.05 and want to diff
