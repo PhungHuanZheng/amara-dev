@@ -15,7 +15,7 @@ class _IUserInput(ABC):
         self._prompt = prompt
 
     @abstractmethod
-    def prompt(self) -> int | str:
+    def prompt(self) -> int | str | bool:
         pass
 
 class OptionsList(_IUserInput):
@@ -44,7 +44,26 @@ class OptionsList(_IUserInput):
                 print(f'{self.__indent}Expecting a whole number between 1 and {len(self.__options)}, got "{choice}" instead.')
 
         return choice
+    
+class YesNoPrompt(_IUserInput):
+    def __init__(self, prompt: str, indent: int = 0) -> None:
+        super().__init__(prompt)
+        self.__indent = '\t' * indent
 
+        # mend prompt
+        if not self._prompt.rstrip().endswith('(y/n):'):
+            self._prompt += '(y/n): '
 
+    def prompt(self) -> bool:
+        # loop for bad input
+        while True:
+            # format prompt
+            choice = input(f'{self.__indent}{self._prompt}').lower()
+
+            # input validation
+            if choice in ('y', 'n'):
+                return choice == 'y'
+
+            print(f'{self.__indent}Expecting "y" for yes or "n" for no, got "{choice}" instead.')
 
 
