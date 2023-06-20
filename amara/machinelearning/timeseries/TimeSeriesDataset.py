@@ -127,6 +127,7 @@ class TimeSeriesDataset:
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
 
+        self.__target = None
         self.__forecast_date = None
         self.__train_data = None
         self.__forecast_data = None
@@ -191,6 +192,19 @@ class TimeSeriesDataset:
             raise NotInitialisedError(f'{self.__class_name}.forecast_data_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
 
         return self.__forecast_data
+
+    @property
+    def target_(self) -> pd.Series:
+        """
+        Returns the target column of the dataset as a `pd.Series` object. Only
+        available after call to `TimeSeriesDataset.consolidate`.
+        """
+
+        # check if data has been consolidated
+        if self.__target is None:
+            raise NotInitialisedError(f'{self.__class_name}.target_ has not been initialised. Call {self.__class_name}.target_ with appropriate arguments.')
+
+        return self.__target
 
     @property
     def forecast_date_(self) -> str:
