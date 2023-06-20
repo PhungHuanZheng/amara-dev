@@ -30,7 +30,7 @@ class OptionsList(_IUserInput):
             # format prompt
             print(f'{self.__indent}{self._prompt}')
             for i, option in enumerate(self.__options):
-                print(f'[{i + 1}] {self.__indent}\t{option}')
+                print(f'\t[{i + 1}] {self.__indent}{option}')
             choice = input(f'{self.__indent}>>> ')
 
             # input validation
