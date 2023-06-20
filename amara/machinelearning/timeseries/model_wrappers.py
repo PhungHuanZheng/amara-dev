@@ -189,3 +189,4 @@ class ARIMAWrapper:
             ARIMA model order as a tuple of 3 integers.
         """
 
+        return order[1:-1].split(', ')
