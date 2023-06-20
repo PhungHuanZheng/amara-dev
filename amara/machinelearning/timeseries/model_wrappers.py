@@ -105,3 +105,14 @@ class ARIMAWrapper:
         # print status report
         print(F'Passes: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
         return pd.DataFrame(orders).rename(columns={0: 'Order', 1: 'MAPE', 2: 'MAE', 3: 'r2'})
+    
+    def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
+        # build model
+        model = ARIMA(self.__train_target, exog=self.__train_exog, order=order, freq='D', enforce_invertibility=True, enforce_stationarity=True)
+
+        # bool to fit model or not
+        if fit:
+            model_fit = model.fit(method='innovations_mle')
+            return model_fit
+        return model
+
