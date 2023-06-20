@@ -58,6 +58,12 @@ class ARIMAWrapper:
             self.__forecast_target = None
             self.__forecast_exog = forecast
 
+    @property
+    def target(self) -> pd.Series:
+        if self.__forecast_target is not None:
+            return pd.concat([self.__train_target, self.__forecast_target])
+        return self.__train_target
+
     def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame | tuple[pd.DataFrame, dict[tuple[int, int, int], ARIMAResults]]:
         """
         Exhaustively searches through the p, d and q value hyperparameters for the ARIMA 
