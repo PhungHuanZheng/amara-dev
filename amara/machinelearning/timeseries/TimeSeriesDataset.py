@@ -75,6 +75,8 @@ class TimeSeriesDataset:
             Tuple of years to ignore, be it because of anomalous data or undesirable distribution
             of values.
         """
+
+        self.__class_name = self.__class__.__name__
         
         # basic init
         self.__initial_datasets = [df.copy(deep=True) for df in datasets]
@@ -115,27 +117,29 @@ class TimeSeriesDataset:
         for i, data in enumerate(self.__datasets):
             self.__datasets[i] = data.loc[(data.index >= self.__date_range.start_date) & (data.index <= self.__date_range.end_date)]
 
+        self.__train_data = None
+        self.__forecast_data = None
+
     def today(self, as_str: bool = False) -> datetime:
         if not as_str:
             return datetime.today().date()
         return datetime.today().date().strftime('%d-%m-%Y')
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data_(self) -> pd.DataFrame:
         """
         Consolidated data suitable for input to a time series forecasting model. Only
         available after call to `TimeSeriesDataset.consolidate`.
 
         Raises
         ------
-        `NotInitiatedError`:
+        `NotInitialisedError`:
             Only available after call to `TimeSeriesDataset.consolidate`.
         """
 
         # check if data has been consolidated
         if self.__consolidated_data is None:
-            class_name = self.__class__.__name__
-            raise NotInitiatedError(f'{class_name}.data has not been initialised. Call {class_name}.consolidated with appropriate arguments.')
+            raise NotInitialisedError(f'{self.__class_name}.data_ has not been initialised. Call {self.__class_name}.consolidated with appropriate arguments.')
         
         return self.__consolidated_data
 
@@ -147,6 +151,36 @@ class TimeSeriesDataset:
         """
 
         return self.__date_range
+    
+    @property
+    def train_data_(self) -> pd.DataFrame:
+        """
+        Period of unified data used for model training. Only available after calls to 
+        `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`
+
+        Raises
+        ------
+        `NotInitialisedError`:
+            Only available after calls to `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`
+        """
+
+        if self.__train_data is None:
+            raise NotInitialisedError(f'{self.__class_name}.train_data_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
+        
+    @property
+    def forecast_data_(self) -> pd.DataFrame:
+        """
+        Period of unified data used for model training. Only available after calls to 
+        `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`
+
+        Raises
+        ------
+        `NotInitialisedError`:
+            Only available after calls to `TimeSeriesDataset.consolidate` and `TimeSeriesDataset.split`
+        """
+
+        if self.__forecast_data is None:
+            raise NotInitialisedError(f'{self.__class_name}.forecast_data_ has not been initialised. Call {self.__class_name}.consolidated and {self.__class_name}.split with appropriate arguments.')
     
     def last_valid_year(self, dataset_id: int, columns: list[str] = None) -> pd.DataFrame | pd.Series:
         """
