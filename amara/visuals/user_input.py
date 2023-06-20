@@ -30,7 +30,7 @@ class OptionsList(_IUserInput):
             # format prompt
             print(f'{self.__indent}{self._prompt}')
             for i, option in enumerate(self.__options):
-                print(f'\t[{i + 1}] {self.__indent}{option}')
+                print(f'{self.__indent}\t[{i + 1}] {option}')
             choice = input(f'{self.__indent}>>> ')
 
             # input validation
@@ -41,7 +41,7 @@ class OptionsList(_IUserInput):
                 break
                 
             except Exception:
-                print(f'{self.__indent}Expecting a whole number between 1 and {len(self.__options)}, got "{choice}" instead.')
+                print(f'{self.__indent}Expecting a whole number between 1 and {len(self.__options)}, got "{choice}" instead.\n')
 
         return choice
     
@@ -64,6 +64,6 @@ class YesNoPrompt(_IUserInput):
             if choice in ('y', 'n'):
                 return choice == 'y'
 
-            print(f'{self.__indent}Expecting "y" for yes or "n" for no, got "{choice}" instead.')
+            print(f'{self.__indent}Expecting "y" for yes or "n" for no, got "{choice}" instead.\n')
 
 
