@@ -172,4 +172,20 @@ class ARIMAWrapper:
             model_fit = model.fit(method='innovations_mle')
             return model_fit
         return model
+    
+    @classmethod
+    def parse_order(cls, order: str) -> tuple[int, int, int]:
+        """
+        Parses an ARIMA order from a string to a tuple of 3 integers.
+
+        Parameters
+        ----------
+        `order` : `str`
+            ARIMA model order as a string.
+        
+        Returns
+        -------
+        `tuple[int, int, int]`
+            ARIMA model order as a tuple of 3 integers.
+        """
 
