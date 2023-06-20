@@ -204,7 +204,7 @@ class TimeSeriesDataset:
         if self.__target is None:
             raise NotInitialisedError(f'{self.__class_name}.target_ has not been initialised. Call {self.__class_name}.target_ with appropriate arguments.')
 
-        return self.__target
+        return self.data_[self.__target]
 
     @property
     def forecast_date_(self) -> str:
