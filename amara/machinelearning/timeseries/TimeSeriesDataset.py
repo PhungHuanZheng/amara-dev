@@ -194,17 +194,17 @@ class TimeSeriesDataset:
         return self.__forecast_data
 
     @property
-    def target_(self) -> pd.Series:
+    def target_(self) -> str:
         """
-        Returns the target column of the dataset as a `pd.Series` object. Only
-        available after call to `TimeSeriesDataset.consolidate`.
+        Returns the the name of the target column of the dataset. Only available 
+        after call to `TimeSeriesDataset.consolidate`.
         """
 
         # check if data has been consolidated
         if self.__target is None:
             raise NotInitialisedError(f'{self.__class_name}.target_ has not been initialised. Call {self.__class_name}.target_ with appropriate arguments.')
 
-        return self.data_[self.__target]
+        return self.__target
 
     @property
     def forecast_date_(self) -> str:
