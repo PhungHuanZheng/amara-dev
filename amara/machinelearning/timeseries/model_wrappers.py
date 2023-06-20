@@ -9,7 +9,7 @@ and not its `instances`.
 from __future__ import annotations
 
 import time
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Literal
 
 import warnings; from statsmodels.tsa.base.tsa_model import ValueWarning
 warnings.filterwarnings(action='ignore', category=UserWarning)
@@ -149,8 +149,20 @@ class ARIMAWrapper:
             return model_results, models
         return model_results
     
-    
-    
+    def forecast_with(self, model_fit: ARIMAResults, forecast: Literal['insample', 'outsample', 'full']) -> pd.Series:
+        # get and return predictions/forecasts
+        insample_pred = model_fit.predict()
+        outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
+        full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
+
+        if forecast == 'insample':
+            return insample_pred
+        if forecast == 'outsample':
+            return outsample_fc
+        if forecast == 'full':
+            return full_pred
+        return None
+
     def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
         # build model
         model = ARIMA(self.__train_target, exog=self.__train_exog, order=order, freq='D', enforce_invertibility=True, enforce_stationarity=True)
