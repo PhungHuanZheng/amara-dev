@@ -32,7 +32,7 @@ class TimeSeriesDataset:
     `date_range` : `_DateRange`
         Unified date range of all DataFrames passed to `__init__`. Has attributes 
         `start_date` and `end_date`.
-    `data` : `pd.DataFrame`
+    `data_` : `pd.DataFrame`
         Consolidated data with unified date range, provided by a call to `TimeSeriesDataset.consolidate`
         with appropriate arguments
 
@@ -47,17 +47,24 @@ class TimeSeriesDataset:
     `consolidate`:
         Consolidates unified datasets passed in `__init__`, indexed by `datasets_id` into
         one DataFrame. Specifiy columns by passing lists of column names, an associative
-        list with `dataset_ids`. Provides access to `TimeSeriesDataset.data`, `TimeSeriesDataset.append`
+        list with `dataset_ids`. Provides access to `TimeSeriesDataset.data_`, `TimeSeriesDataset.append`
         and `TimeSeriesDataset.split`.
     `append`:
         Appends a new data column to previously consolidated data. Data passed must be a `pd.Series`
         object with a datetime index.
     `split`
         Splits the consolidate data into train and forecast on `split_date` passed. Train data
-        is inclusive of `split_date` and forecast is exclusive of `split_date`.
+        is inclusive of `split_date` and forecast is exclusive of `split_date`. Provides access to 
+        `TimeSeriesDataset.data_`, `TimeSeriesDataset.train_data_`, `TimeSeriesDataset.forecast_data_` and
+        `TimeSeriesDataset.forecast_date_`.
     `auto_diff`
         Auto differences the data based on their p-values returned by the `adfuller` test. Pass a 
         boolean mask to control whether a column is to be differenced.
+
+    Notes
+    -----
+    Attributes with a trailing underscore, e.g.: "data_", are attributes that are not initialised during
+    `__init__`. Read their docstrings about how to initialise and access them.
     """
 
     def __init__(self, datasets: list[pd.DataFrame], datetime_cols: list[str], removed_years: tuple[int] = None) -> None:
@@ -120,11 +127,6 @@ class TimeSeriesDataset:
         self.__forecast_date = None
         self.__train_data = None
         self.__forecast_data = None
-
-    def today(self, as_str: bool = False) -> datetime:
-        if not as_str:
-            return datetime.today().date()
-        return datetime.today().date().strftime('%d-%m-%Y')
 
     @property
     def data_(self) -> pd.DataFrame:
