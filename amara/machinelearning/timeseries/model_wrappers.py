@@ -177,7 +177,7 @@ class ARIMAWrapper:
             return full_pred
         return None
 
-    def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
+    def reconstruct(self, order: tuple[int, int, int], fit: bool = False) -> ARIMA | ARIMAResults:
         # build model
         model = ARIMA(self.__train_target, exog=self.__train_exog, order=order, freq='D', enforce_invertibility=True, enforce_stationarity=True)
 
