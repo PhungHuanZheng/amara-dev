@@ -9,6 +9,7 @@ and not its `instances`.
 from __future__ import annotations
 
 import time
+from typing import Callable, Iterable
 
 import warnings; from statsmodels.tsa.base.tsa_model import ValueWarning
 warnings.filterwarnings(action='ignore', category=UserWarning)
@@ -50,14 +51,40 @@ class ARIMAWrapper:
         self.__train_target = train[target]
         self.__train_exog = train.drop(target, axis=1)
 
-        if target in target:
+        if target in self.__forecast:
             self.__forecast_target = forecast[target]
             self.__forecast_exog = forecast.drop(target, axis=1)
         else:
             self.__forecast_target = None
             self.__forecast_exog = forecast
 
-    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int]) -> pd.DataFrame:
+    def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None) -> pd.DataFrame:
+        """
+        Exhaustively searches through the p, d and q value hyperparameters for the ARIMA 
+        model and returns a DataFrame of passed models. Scores models based on their mean 
+        absolute error (MAE), mean absolute percentage error (MAPE) and r2 score.
+
+        Parameters
+        ----------
+        `p_values` : `list[int]`
+            List of integers for `p`, the auto-regressive (AR) term.
+        `d_values` : `list[int]`
+            List of integers for `d`, the differencing count (I).
+        `q_values` : `list[int]`
+            List of integers for `q`, the moving average (MA) term.
+        `metrics` : `list[Callable[[Iterable, Iterable], Iterable]]`
+            List of metrics functions that take in 2 arguments, `y_true` and `y_pred` and returns 
+            an iterable of the same length.
+        `bounds` : `tuple[int, int]`, `default=None`
+            Optional bounds for forecasted values. Values found not within these bounds will cause the 
+            model to fail. Pass `None` for no bounds.
+
+        Returns
+        -------
+        `pd.DataFrame`
+            DataFrame of passed models and their metrics
+        """
+
         # init progress tracker
         steps_count = len(p_values) * len(d_values) * len(q_values)
         tracker = SingleProgressBar(steps_count, bar_length=100)
@@ -84,17 +111,18 @@ class ARIMAWrapper:
                         insample_pred = model_fit.predict()
                         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
                         full_pred = pd.concat([insample_pred, outsample_fc.predicted_mean])
-
-                        # check if values <0 or >100
-                        if full_pred.apply(lambda x: True if x < 0 or x > 100 else False).any():
-                            raise Exception
+                        
+                        if bounds is not None:
+                            # check if values <0 or >100
+                            if full_pred.apply(lambda x: True if x < bounds[0] or x > bounds[1] else False).any():
+                                raise Exception
                         
                         # get model metrics based on train part
-                        MAPE = mean_absolute_percentage_error(self.__train_target, insample_pred)
-                        MAE = mean_absolute_error(self.__train_target, insample_pred)
-                        R2_SCORE = r2_score(self.__train_target, insample_pred)
+                        model_results = [(p, d, q)]
+                        for metric in metrics:
+                            model_results.append(metric(self.__train_target, insample_pred))
                         
-                        orders.append([(p, d, q), MAPE, MAE, R2_SCORE])
+                        orders.append(model_results)
                         passes += 1
 
                     except Exception:
@@ -104,7 +132,7 @@ class ARIMAWrapper:
 
         # print status report
         print(F'Passes: {passes} | Failures: {failures} | Time Taken: {time.perf_counter() - start:.2f}s')
-        return pd.DataFrame(orders).rename(columns={0: 'Order', 1: 'MAPE', 2: 'MAE', 3: 'r2'})
+        return pd.DataFrame(orders).rename(columns={0: 'Order'} | {i: metric.__name__ for i, metric in enumerate(metrics, start=1)})
     
     def reconstruct(self, order: tuple[int, int, int], fit: bool = False):
         # build model
