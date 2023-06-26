@@ -7,6 +7,8 @@ other tables.
 
 from __future__ import annotations
 
+import warnings; warnings.filterwarnings('ignore')
+
 import math
 from datetime import datetime
 
