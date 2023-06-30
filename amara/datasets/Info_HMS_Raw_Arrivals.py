@@ -93,7 +93,7 @@ def mend_arrival_departure_dates(data: pd.DataFrame) -> pd.DataFrame:
     return data.reset_index(drop=True)
 
 
-def generate_pickup_report(data: pd.DataFrame, n_day_pickups: list[int]) -> pd.DataFrame:
+def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame:
     """
     Dynamic pickup calculation for Info HMS Raw Arrivals after preprocessing. Column
     `['Split Nights']` must exist in the `data` passed. Call `amara.datasets.Info_HMS_Raw_Arrivals.
@@ -104,6 +104,9 @@ def generate_pickup_report(data: pd.DataFrame, n_day_pickups: list[int]) -> pd.D
     `data` : `pd.DataFrame`
         Info HMS Raw Arrivals dataset after `mend_arrival_departure_dates` is called on it and column
         `['Split Nights']` is set.
+    `trend_range` : `int`, `default=60`
+        Days before query date to use to calculate pickup for. Resulting `Dataframe` will contain
+        about `unique_arrival_dates * trend_range` rows.
 
     Returns
     -------
@@ -117,18 +120,31 @@ def generate_pickup_report(data: pd.DataFrame, n_day_pickups: list[int]) -> pd.D
     """
 
     # validate n_day_pickups param
-    if not all([isinstance(n_day_pickups, list),
-                all([isinstance(v, int) and v > 0 for v in n_day_pickups])]):
-        raise Exception(f'Parameter "n_day_pickups" must be a list of positive (>0) integers.')
+    if not isinstance(trend_range, int):
+        raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
+    if trend_range <= 0:
+        raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     
-    # build dataset skeleton with n_day_pickups passed
-    pickup_df = {'Arrival Date': [], 'Report Date': []}
-    for days_before in n_day_pickups:
-        pickup_df[f'{days_before} Day Pickup'] = []
-    
-    
+    # build dataframe skeleton
+    pickup_df = {'Arrival Date': [], 'Query Date': [], 'Days Before': [], 'Pickup': []}
+
     # get arrival dates in data
     arrival_dates = np.unique(data['Arrival Date'].sort_values().dt.to_pydatetime())
-    trend_range = 60 + 1
+    trend_range = trend_range + 1
+
+    # iterate over arrival dates
+    for date in arrival_dates:
+        # iterate over days in 0 - "trend_range"
+        for days in range(trend_range):
+            # get subdf of query date, populate pickup
+            query_date = date - timedelta(days=days)
+            subdf = data.loc[(data['Arrival Date'] == date) & (data['Created On'] <= query_date)]
+            pickup_df['Pickup'].append(len(subdf))
+
+            # build df
+            pickup_df['Arrival Date'].append(date)
+            pickup_df['Query Date'].append(query_date)
+            pickup_df['Days Before'].append(days)
+
+    return pd.DataFrame(pickup_df)
         
-    
