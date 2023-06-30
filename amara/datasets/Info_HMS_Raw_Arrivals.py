@@ -7,7 +7,7 @@ Raw Arrivals dataset, which holds data for arrivals and departures of guests.
 from __future__ import annotations
 
 import calendar
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import pandas as pd
 import numpy as np
@@ -92,3 +92,42 @@ def mend_arrival_departure_dates(data: pd.DataFrame) -> pd.DataFrame:
 
     return data.reset_index(drop=True)
 
+
+def generate_pickup_report(data: pd.DataFrame, n_day_pickups: list[int]) -> pd.DataFrame:
+    """
+    Dynamic pickup calculation for Info HMS Raw Arrivals after preprocessing. Column
+    `['Split Nights']` must exist in the `data` passed. Call `amara.datasets.Info_HMS_Raw_Arrivals.
+    mend_arrival_departure_dates` on the data before passing it here.
+
+    Parameters
+    ----------
+    `data` : `pd.DataFrame`
+        Info HMS Raw Arrivals dataset after `mend_arrival_departure_dates` is called on it and column
+        `['Split Nights']` is set.
+
+    Returns
+    -------
+    `pd.DataFrame`
+        DataFrame object with `Pickup Trend` and `RNs Picked Up` columns.
+
+    See Also
+    --------
+    `amara.datasets.Info_HMS_Raw_Arrivals.mend_arrival_departure_dates` : Preprocessing function to call
+    before data can be passed here.
+    """
+
+    # validate n_day_pickups param
+    if not all([isinstance(n_day_pickups, list),
+                all([isinstance(v, int) and v > 0 for v in n_day_pickups])]):
+        raise Exception(f'Parameter "n_day_pickups" must be a list of positive (>0) integers.')
+    
+    # build dataset skeleton with n_day_pickups passed
+    pickup_df = {
+
+    }
+    
+    # get arrival dates in data
+    arrival_dates = np.unique(data['Arrival Date'].sort_values().dt.to_pydatetime())
+    trend_range = 60 + 1
+        
+    
