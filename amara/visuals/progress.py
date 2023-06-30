@@ -108,7 +108,28 @@ class SingleProgressBar:
 
 
 class MultipleProgressBar:
-    def __init__(self,  names: list[str], steps: list[int], bar_length: int = 100, characters: tuple[str, str] = ('▓', '▒')) -> None:
+    """
+    Created a progress bar visual that supports multiple bars and separate updating for
+    bars of different lengths
+    """
+
+    def __init__(self, names: list[str], steps: list[int], bar_length: int = 100, characters: tuple[str, str] = ('▓', '▒')) -> None:
+        """
+        Creates an instance of `MultipleProgressBar`.
+
+        Parameters
+        ----------
+        `names` : `list[str]`
+            Ordered names of each progress bar.
+        `steps` : `list[int]`
+            Ordered step counts of each progress bar.
+        `bar_length` : `int`, `default=100`
+            Length of bar in ascii units to display on prompt.
+        `characters` : `tuple[str, str]`, `default=('▓', '▒')`
+            Characters to represent percentage complete, first character shows 'done' and 
+            second shows 'not done'.
+        """
+        
         self._names = names
         self._steps = steps
 
@@ -128,12 +149,11 @@ class MultipleProgressBar:
 
     @property
     def all_done(self) -> bool:
+        """Boolean representing whether all bars are complete."""
+
         return all([self._current_steps[i] == steps for i, steps in enumerate(self._steps)])
 
     def _generate_bars(self) -> None:
-        # prep individual bar lines
-        # os.system('cls')
-        
         print(f'\033[{len(self._names) + 3}A')
         print(f'┌┬{"─" * (self._name_spacing + 2)}┬{"─" * (self._bar_length + 2)}┬{"─" * 8}┬┐')
         
@@ -148,21 +168,28 @@ class MultipleProgressBar:
         print(f'└┴{"─" * (self._name_spacing + 2)}┴{"─" * (self._bar_length + 2)}┴{"─" * 8}┴┘')
 
     def update(self, index: int) -> None:
+        """
+        Updates a single bar based on `index` passed.
+
+        Parameters
+        ----------
+        `index` : `int`
+            Index of bar to be updated
+        """
+
         if self._current_steps[index] >= self._steps[index]:
             raise Exception(f'Current step ({self._current_steps[index]}) exceeded max steps ({self._steps[index]}) for bar {self._names[index]}.')
         self._current_steps[index] += 1
 
         self._generate_bars()
-        # if self.all_done: 
-        #     sys.exit()
 
     def update_all(self) -> None:
+        """Updates all bars at once."""
+
         for i, _ in enumerate(self._steps):
             if self._current_steps[i] >= self._steps[i]:
                 raise Exception(f'Current step ({self._current_steps[i]}) exceeded max steps ({self._steps[i]}) for bar {self._names[i]}.')
             self._current_steps[i] += 1
 
         self._generate_bars()   
-        # if self.all_done:  
-        #     sys.exit()
     
