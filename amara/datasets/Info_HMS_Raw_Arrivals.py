@@ -122,9 +122,10 @@ def generate_pickup_report(data: pd.DataFrame, n_day_pickups: list[int]) -> pd.D
         raise Exception(f'Parameter "n_day_pickups" must be a list of positive (>0) integers.')
     
     # build dataset skeleton with n_day_pickups passed
-    pickup_df = {
-
-    }
+    pickup_df = {'Arrival Date': [], 'Report Date': []}
+    for days_before in n_day_pickups:
+        pickup_df[f'{days_before} Day Pickup'] = []
+    
     
     # get arrival dates in data
     arrival_dates = np.unique(data['Arrival Date'].sort_values().dt.to_pydatetime())
