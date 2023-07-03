@@ -426,22 +426,19 @@ def HMS_Flash_Report_extract_raw_data(data: pd.DataFrame) -> pd.DataFrame:
     # extract date of report
     report_date = datetime.strptime(data.at[2, 'Unnamed: 0'], '%d-%m-%Y %A')
     
-
-    """Extract Day/Month/Year to Date data for report year, ignore last year"""
     # extract data portion for year of report (first 3 columns)
     raw_data = data[data.columns.tolist()[:4]]
     data_start = raw_data['Unnamed: 0'].tolist().index('Rooms Occupied')
     data_end = raw_data['Unnamed: 0'].tolist().index('ADR excluding Complimentary and House Use')
-    raw_data = raw_data.iloc[data_start:data_end].T
+    raw_data = raw_data.iloc[data_start:data_end].T.iloc[:2]
 
     # cleanup/adjustment
     raw_data.columns = raw_data.iloc[0].values
-    raw_data = raw_data.iloc[1:]
-    raw_data['X to Date'] = ['Day', 'Month', 'Year']
+    raw_data = raw_data.iloc[[1]]
     raw_data['Date'] = report_date.strftime('%d-%m-%Y')
 
     # clean up columns and index
-    raw_data = raw_data[['Date', 'X to Date'] + raw_data.columns.tolist()[:-2]]
+    raw_data = raw_data[['Date'] + raw_data.columns.tolist()[:-1]]
     raw_data.reset_index(drop=True, inplace=True)
 
     return raw_data
