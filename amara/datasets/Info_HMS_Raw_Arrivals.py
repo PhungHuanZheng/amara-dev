@@ -126,7 +126,7 @@ def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame
         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     
     # build dataframe skeleton
-    pickup_df = {'Arrival Date': [], 'Query Date': [], 'Days Before': [], 'Pickup': [], 'Available Rooms': []}
+    pickup_df = {'Arrival Date': [], 'Query Date': [], 'Days Before': [], 'Pickup': [], 'Booking Trend': []}
 
     # get arrival dates in data
     arrival_dates = np.unique(data['Arrival Date'].sort_values().dt.to_pydatetime())
@@ -134,18 +134,22 @@ def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame
 
     # iterate over arrival dates
     for date in arrival_dates:
-        # available rooms for the day
-        available_rooms = 384
-
         # iterate over days in 0 - "trend_range"
         for days in range(trend_range):
-            # get subdf of query date, populate pickup
+            # get query date
             query_date = date - timedelta(days=days)
-            pickup = len(data.loc[(data['Arrival Date'] == date) & (data['Created On'] <= query_date)])
-            pickup_df['Pickup'].append(pickup)
 
-            # get count of available rooms for relative date
-            pickup_df['Available Rooms'].append(available_rooms - pickup)
+            # get data at comparison date
+            comparison_bookings = data.loc[(data['Arrival Date'] == date) & (data['Created On'] <= query_date)]
+            comparison_RNs = comparison_bookings['Split Nights'].sum()
+
+            # get data on date of report
+            DOR_bookings = data.loc[data['Arrival Date'] == date]
+            DOR_RNs = DOR_bookings['Split Nights'].sum()
+
+            # difference between compared date and date of report data
+            pickup_df['Pickup'].append(DOR_RNs - comparison_RNs)
+            pickup_df['Booking Trend'].append(len(DOR_bookings) - len(comparison_bookings))
 
             # build df
             pickup_df['Arrival Date'].append(date)

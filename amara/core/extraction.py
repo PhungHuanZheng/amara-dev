@@ -435,7 +435,7 @@ def HMS_Flash_Report_extract_raw_data(data: pd.DataFrame) -> pd.DataFrame:
     # cleanup/adjustment
     raw_data.columns = raw_data.iloc[0].values
     raw_data = raw_data.iloc[[1]]
-    raw_data['Date'] = report_date.strftime('%d-%m-%Y')
+    raw_data['Date'] = report_date
 
     # clean up columns and index
     raw_data = raw_data[['Date'] + raw_data.columns.tolist()[:-1]]
