@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import calendar
 from datetime import timedelta, datetime
+from joblib.parallel import Parallel, delayed
+from itertools import chain
 
 import pandas as pd
 import numpy as np
@@ -126,37 +128,48 @@ def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame
         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     
     # build dataframe skeleton
-    pickup_df = {'Arrival Date': [], 'Query Date': [], 'Days Before': [], 'Pickup': [], 'Booking Trend': []}
+    pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Pickup Trend': [], 'Room Nights PU': [], 'Bookings': []}
+    pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Cumulative Bookings': [], 'Pickup': []}
 
     # get arrival dates in data
-    arrival_dates = np.unique(data['Arrival Date'].sort_values().dt.to_pydatetime())
+    arrival_dates = np.unique(data['Arrival Date'].sort_values())
     trend_range = trend_range + 1
 
-    # iterate over arrival dates
-    for date in arrival_dates:
-        # iterate over days in 0 - "trend_range"
-        for days in range(trend_range):
-            # get query date
-            query_date = date - timedelta(days=days)
+    # build super scuffed df but it works
+    bookings_and_pickup = Parallel(n_jobs=-1, verbose=0)(delayed(_arrival_date_bookings)(data.loc[data['Arrival Date'] == arrival_date], arrival_date, trend_range) for arrival_date in arrival_dates)
+    bookings_and_pickup = np.array(bookings_and_pickup).T
 
-            # get data at comparison date
-            comparison_bookings = data.loc[(data['Arrival Date'] == date) & (data['Created On'] <= query_date)]
-            comparison_RNs = comparison_bookings['Split Nights'].sum()
+    cumulative_bookings = bookings_and_pickup[:, 0, :].T
+    pickup = bookings_and_pickup[:, 1, :].T
 
-            # get data on date of report
-            DOR_bookings = data.loc[data['Arrival Date'] == date]
-            DOR_RNs = DOR_bookings['Split Nights'].sum()
+    pickup_df['Arrival Date'] += list(chain.from_iterable([[arrival_date] * trend_range for arrival_date in arrival_dates]))
+    pickup_df['Days Before'] += list(range(trend_range)) * len(arrival_dates)
+    pickup_df['Query Date'] += list(chain.from_iterable([[arrival_date - timedelta(days=days) for days in range(trend_range)] for arrival_date in arrival_dates]))
+    pickup_df['Cumulative Bookings'] += list(chain.from_iterable(cumulative_bookings))
+    pickup_df['Pickup'] += list(chain.from_iterable(pickup))
 
-            # difference between compared date and date of report data
-            pickup_df['Pickup'].append(DOR_RNs - comparison_RNs)
-            pickup_df['Booking Trend'].append(len(DOR_bookings) - len(comparison_bookings))
+    for k, v in pickup_df.items():
+        print(k, len(v))
 
-            # build df
-            pickup_df['Arrival Date'].append(date)
-            pickup_df['Query Date'].append(query_date)
-            pickup_df['Days Before'].append(days)
+    # stringify dates
+    pickup_df = pd.DataFrame(pickup_df)
+    pickup_df['Arrival Date'] = pd.to_datetime(pickup_df['Arrival Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
+    pickup_df['Query Date'] = pd.to_datetime(pickup_df['Query Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
 
-        print(date)
+    return pickup_df
 
-    return pd.DataFrame(pickup_df)
+def _arrival_date_bookings(data: pd.DataFrame, arrival_date: datetime, trend_range: int) -> tuple[list[int], list[int]]:
+    # get cumsum of bookings made in 0 - "trend_range" days
+    trend_dates = [arrival_date - timedelta(days=days) for days in range(trend_range)]
+    query_subdfs = [data.loc[data['Created On'] == booking_date] for booking_date in trend_dates]
+    bookings_made = [len(subdf) for subdf in query_subdfs]
+    
+    # cumulative bookings for booking trend
+    cumulative_bookings = np.cumsum(bookings_made[::-1]).tolist()[::-1]
+
+    # room nights pickup
+    cumulative_RNs = np.cumsum([subdf['Split Nights'].sum() for subdf in query_subdfs][::-1]).tolist()[::-1]
+    RNs_pickup = [cumulative_RNs[0] - RNs for RNs in cumulative_RNs]
+
+    return (cumulative_bookings, RNs_pickup)
         
