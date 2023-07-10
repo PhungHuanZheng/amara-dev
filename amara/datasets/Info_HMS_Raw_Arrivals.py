@@ -95,81 +95,137 @@ def mend_arrival_departure_dates(data: pd.DataFrame) -> pd.DataFrame:
     return data.reset_index(drop=True)
 
 
-def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame:
-    """
-    Dynamic pickup calculation for Info HMS Raw Arrivals after preprocessing. Column
-    `['Split Nights']` must exist in the `data` passed. Call `amara.datasets.Info_HMS_Raw_Arrivals.
-    mend_arrival_departure_dates` on the data before passing it here.
+def _cumulative_bookings_and_pickup(data: pd.DataFrame, report_date: datetime, trend_range: int) -> list[int]:
+    # set up list for cumsum
+    booking_trend: list[int] = []
+    
+    # data to passed is already filtered for the report date, get days between report date and created date
+    booking_windows = np.array([report_date] * len(data)) - data['Created On'].dt.to_pydatetime()
+    booking_windows = [window.days for window in booking_windows]
+    data['DOR Booking Window'] = booking_windows
 
-    Parameters
-    ----------
-    `data` : `pd.DataFrame`
-        Info HMS Raw Arrivals dataset after `mend_arrival_departure_dates` is called on it and column
-        `['Split Nights']` is set.
-    `trend_range` : `int`, `default=60`
-        Days before query date to use to calculate pickup for. Resulting `Dataframe` will contain
-        about `unique_arrival_dates * trend_range` rows.
+    # group bookings by window
+    for days in range(trend_range):
+        booking_trend.append(len(data.loc[data['DOR Booking Window'] == days]))
 
-    Returns
-    -------
-    `pd.DataFrame`
-        DataFrame object with `Pickup Trend` and `RNs Picked Up` columns.
+    # get and mend cumsum to include bookings out of trend range
+    booking_trend = np.cumsum(booking_trend[::-1])[::-1]
+    booking_trend += len(data) - booking_trend[0]
 
-    See Also
-    --------
-    `amara.datasets.Info_HMS_Raw_Arrivals.mend_arrival_departure_dates` : Preprocessing function to call
-    before data can be passed here.
-    """
+    # use cumulative bookings to get pickup within trend range
+    pickup = [booking_trend[0] - booking_trend[i] for i in range(trend_range)]
+    print(report_date)
+    return booking_trend, pickup
 
+def generate_pickup_report(data: pd.DataFrame, *, trend_range: int) -> pd.DataFrame:
     # validate n_day_pickups param
     if not isinstance(trend_range, int):
         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     if trend_range <= 0:
         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     
-    # build dataframe skeleton
-    pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Pickup Trend': [], 'Room Nights PU': [], 'Bookings': []}
-    pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Cumulative Bookings': [], 'Pickup': []}
-
-    # get arrival dates in data
-    arrival_dates = np.unique(data['Arrival Date'].sort_values())
+    # get report dates in data
+    report_dates = pd.to_datetime(np.unique(data['Arrival Date'].sort_values()), format='%Y-%m-%d')
     trend_range = trend_range + 1
 
-    # build super scuffed df but it works
-    bookings_and_pickup = Parallel(n_jobs=-1, verbose=0)(delayed(_arrival_date_bookings)(data.loc[data['Arrival Date'] == arrival_date], arrival_date, trend_range) for arrival_date in arrival_dates)
-    bookings_and_pickup = np.array(bookings_and_pickup).T
+    # get cumulative bookings for each report date
+    bookings_and_pickup = Parallel(n_jobs=-1, verbose=0)(delayed(_cumulative_bookings_and_pickup)(
+        data.loc[
+            (data['Arrival Date'] <= report_date) & 
+            (data['Departure Date'] > report_date) &
+            (~data['Status'].isin(['Cancelled', 'No Show']))
+        ].copy(deep=True), pd.to_datetime(report_date, format='%Y-%m-%d'), trend_range
+    ) for report_date in report_dates)
 
-    cumulative_bookings = bookings_and_pickup[:, 0, :].T
-    pickup = bookings_and_pickup[:, 1, :].T
+    # separate and flatten groupings and pickup
+    booking_trend = np.array(bookings_and_pickup)[:, 0, :].flatten()
+    pickup = np.array(bookings_and_pickup)[:, 1, :].flatten()
 
-    pickup_df['Arrival Date'] += list(chain.from_iterable([[arrival_date] * trend_range for arrival_date in arrival_dates]))
-    pickup_df['Days Before'] += list(range(trend_range)) * len(arrival_dates)
-    pickup_df['Query Date'] += list(chain.from_iterable([[arrival_date - timedelta(days=days) for days in range(trend_range)] for arrival_date in arrival_dates]))
-    pickup_df['Cumulative Bookings'] += list(chain.from_iterable(cumulative_bookings))
-    pickup_df['Pickup'] += list(chain.from_iterable(pickup))
+    # build and return pickup df
+    return pd.DataFrame({
+        'Report Date': list(chain.from_iterable([[report_date] * trend_range for report_date in report_dates])),
+        'Query Date': list(chain.from_iterable([[report_date - timedelta(days=days) for days in range(trend_range)] for report_date in report_dates])),
+        'Days Before': list(range(trend_range)) * len(report_dates),
+        'Cumulative Bookings': booking_trend,
+        'Pickup': pickup,
+    })
 
-    for k, v in pickup_df.items():
-        print(k, len(v))
 
-    # stringify dates
-    pickup_df = pd.DataFrame(pickup_df)
-    pickup_df['Arrival Date'] = pd.to_datetime(pickup_df['Arrival Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
-    pickup_df['Query Date'] = pd.to_datetime(pickup_df['Query Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
+# def generate_pickup_report(data: pd.DataFrame, trend_range: int) -> pd.DataFrame:
+#     """
+#     Dynamic pickup calculation for Info HMS Raw Arrivals after preprocessing. Column
+#     `['Split Nights']` must exist in the `data` passed. Call `amara.datasets.Info_HMS_Raw_Arrivals.
+#     mend_arrival_departure_dates` on the data before passing it here.
 
-    return pickup_df
+#     Parameters
+#     ----------
+#     `data` : `pd.DataFrame`
+#         Info HMS Raw Arrivals dataset after `mend_arrival_departure_dates` is called on it and column
+#         `['Split Nights']` is set.
+#     `trend_range` : `int`, `default=60`
+#         Days before query date to use to calculate pickup for. Resulting `Dataframe` will contain
+#         about `unique_arrival_dates * trend_range` rows.
 
-def _arrival_date_bookings(data: pd.DataFrame, arrival_date: datetime, trend_range: int) -> tuple[list[int], list[int]]:
-    # get cumsum of bookings made in 0 - "trend_range" days
-    trend_dates = [arrival_date - timedelta(days=days) for days in range(trend_range)]
-    query_subdfs = [data.loc[data['Created On'] == booking_date] for booking_date in trend_dates]
-    bookings_made = [len(subdf) for subdf in query_subdfs]
+#     Returns
+#     -------
+#     `pd.DataFrame`
+#         DataFrame object with `Pickup Trend` and `RNs Picked Up` columns.
+
+#     See Also
+#     --------
+#     `amara.datasets.Info_HMS_Raw_Arrivals.mend_arrival_departure_dates` : Preprocessing function to call
+#     before data can be passed here.
+#     """
+
+#     # validate n_day_pickups param
+#     if not isinstance(trend_range, int):
+#         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
+#     if trend_range <= 0:
+#         raise ValueError(f'Expecting positive integer for parameter "trend_range", got "{trend_range}" instead.')
     
-    # cumulative bookings for booking trend
-    cumulative_bookings = np.cumsum(bookings_made[::-1]).tolist()[::-1]
+#     # build dataframe skeleton
+#     pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Pickup Trend': [], 'Room Nights PU': [], 'Bookings': []}
+#     pickup_df = {'Arrival Date': [], 'Days Before': [], 'Query Date': [], 'Cumulative Bookings': [], 'Pickup': []}
 
-    # room nights pickup
-    cumulative_RNs = np.cumsum([subdf['Split Nights'].sum() for subdf in query_subdfs][::-1]).tolist()[::-1]
-    RNs_pickup = [cumulative_RNs[0] - RNs for RNs in cumulative_RNs]
+#     # get arrival dates in data
+#     arrival_dates = np.unique(data['Arrival Date'].sort_values())
+#     trend_range = trend_range + 1
 
-    return (cumulative_bookings, RNs_pickup)
+#     # build super scuffed df but it works
+#     bookings_and_pickup = Parallel(n_jobs=-1, verbose=0)(delayed(_arrival_date_bookings)(data.loc[data['Arrival Date'] == arrival_date], arrival_date, trend_range) for arrival_date in arrival_dates)
+#     bookings_and_pickup = np.array(bookings_and_pickup).T
+
+#     cumulative_bookings = bookings_and_pickup[:, 0, :].T
+#     pickup = bookings_and_pickup[:, 1, :].T
+
+#     pickup_df['Arrival Date'] += list(chain.from_iterable([[arrival_date] * trend_range for arrival_date in arrival_dates]))
+#     pickup_df['Days Before'] += list(range(trend_range)) * len(arrival_dates)
+#     pickup_df['Query Date'] += list(chain.from_iterable([[arrival_date - timedelta(days=days) for days in range(trend_range)] for arrival_date in arrival_dates]))
+#     pickup_df['Cumulative Bookings'] += list(chain.from_iterable(cumulative_bookings))
+#     pickup_df['Pickup'] += list(chain.from_iterable(pickup))
+
+#     for k, v in pickup_df.items():
+#         print(k, len(v))
+
+#     # stringify dates
+#     pickup_df = pd.DataFrame(pickup_df)
+#     pickup_df['Arrival Date'] = pd.to_datetime(pickup_df['Arrival Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
+#     pickup_df['Query Date'] = pd.to_datetime(pickup_df['Query Date'], format='%Y-%m-%d').dt.strftime('%d-%m-%Y')
+
+#     return pickup_df
+
+# def _arrival_date_bookings(data: pd.DataFrame, arrival_date: datetime, trend_range: int) -> tuple[list[int], list[int]]:
+#     # get cumsum of bookings made in 0 - "trend_range" days
+#     trend_dates = [arrival_date - timedelta(days=days) for days in range(trend_range)]
+#     query_subdfs = [data.loc[data['Created On'] == booking_date] for booking_date in trend_dates]
+#     bookings_made = [len(subdf) for subdf in query_subdfs]
+    
+#     # cumulative bookings for booking trend
+#     cumulative_bookings = np.cumsum(bookings_made[::-1]).tolist()[::-1]
+
+#     # room nights pickup
+#     cumulative_RNs = np.cumsum([subdf['Split Nights'].sum() for subdf in query_subdfs][::-1]).tolist()[::-1]
+#     RNs_pickup = [cumulative_RNs[0] - RNs for RNs in cumulative_RNs]
+
+#     return (cumulative_bookings, RNs_pickup)
         
