@@ -114,7 +114,7 @@ def _cumulative_bookings_and_pickup(data: pd.DataFrame, report_date: datetime, t
 
     # use cumulative bookings to get pickup within trend range
     pickup = [booking_trend[0] - booking_trend[i] for i in range(trend_range)]
-    print(report_date)
+
     return booking_trend, pickup
 
 def generate_pickup_report(data: pd.DataFrame, *, trend_range: int) -> pd.DataFrame:
