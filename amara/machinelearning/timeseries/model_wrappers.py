@@ -60,16 +60,30 @@ class ARIMAWrapper:
 
     @property
     def target(self) -> pd.Series:
+        """
+        Returns the train and forecast targets as a concatenated `DataFrame` object or just the train
+        targets if the target column does not exist in the forecast dataset.
+        """
+
         if self.__forecast_target is not None:
             return pd.concat([self.__train_target, self.__forecast_target])
         return self.__train_target
     
     @property
     def forecast_length(self) -> int:
+        """
+        Returns the length of the forecast period in days
+        """
+
         return len(self.__forecast)
     
     @property
     def forecast_exog(self) -> pd.DataFrame:
+        """
+        Returns the exogenous variables from the forecast dataset, every column that isn't the 
+        target column
+        """
+
         return self.__forecast_exog
 
     def exhaustive_search(self, p_values: list[int], d_values: list[int], q_values: list[int], metrics: list[Callable[[Iterable, Iterable], Iterable]], bounds: tuple[int, int] = None, return_models: bool = False) -> pd.DataFrame | tuple[pd.DataFrame, dict[tuple[int, int, int], ARIMAResults]]:
@@ -164,6 +178,23 @@ class ARIMAWrapper:
         return model_results
     
     def forecast_with(self, model_fit: ARIMAResults, forecast: Literal['insample', 'outsample', 'full']) -> pd.Series:
+        """
+        Generates a forecast using a trained model `model_fit` passed with the option 
+        to do an insample, outsample or full forecast.
+
+        Parameters
+        ----------
+        `model_fit` : ARIMAResults
+            Trained ARIMA model to generate a forecast
+        `forecast` : Literal['insample', 'outsample', 'full']
+            Option to decide the period the forecast is generated for
+
+        Returns
+        -------
+        `pd.Series`
+            A single-dimension iterable with the forecasted values
+        """
+
         # get and return predictions/forecasts
         insample_pred = model_fit.predict()
         outsample_fc = model_fit.get_forecast(len(self.__forecast), exog=self.__forecast_exog)
@@ -178,6 +209,25 @@ class ARIMAWrapper:
         return None
 
     def reconstruct(self, order: tuple[int, int, int], fit: bool = False) -> ARIMA | ARIMAResults:
+        """
+        Reconstructs an ARIMA model with the order passed and optionally fits it to 
+        training data.
+
+        Parameters
+        ----------
+        `order` : `tuple[int, int, int]`
+            Order of the ARIMA model to be reconstructed
+        `fit` : `bool`, `default=False`
+            Whether to fit the model to the training data. If the model if fitted, 
+            an ARIMAResults instance will be returned instad of an ARIMA instance.
+
+        Returns
+        -------
+        `ARIMA | ARIMAResults`
+            If the model if fitted, an ARIMAResults instance will be returned instad 
+            of an ARIMA instance.
+        """
+
         # build model
         model = ARIMA(self.__train_target, exog=self.__train_exog, order=order, freq='D', enforce_invertibility=True, enforce_stationarity=True)
 
