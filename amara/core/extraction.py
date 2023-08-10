@@ -10,6 +10,7 @@ from copy import deepcopy
 from datetime import datetime
 from itertools import chain
 import calendar
+from typing import Any
 
 import pandas as pd
 
@@ -622,3 +623,235 @@ def STR_extract_raw_data(data: pd.DataFrame) -> pd.DataFrame:
 
     return consolidated_df
 
+def dStarSummary_extract_raw_data(data: pd.DataFrame, *, hotel = None) -> pd.DataFrame:
+    """
+    Extracts raw data from the 'Summary {n}' sheet in dStar reports. Compatible
+    with all hotel reports.
+
+    Parameters
+    ----------
+    `data` : `pd.DataFrame`
+        Formatted dStar Summary Report as a Pandas DataFrame
+
+    Returns
+    -------
+    `pd.DataFrame`
+        dStar Summary Report as raw data
+    `hotel` : `str`, `default = None`
+        Hotel name/code to be shown in the dataset
+
+    Examples
+    --------
+    >>> df = dStarSummary_extract_raw_data(dStarSummary_df)
+
+    See Also
+    --------
+    :func:`amara.core.extraction` : data extraction from reports module
+    """
+
+    # call by value
+    data = data.copy(deep=True)
+
+    # get global sheet data
+    branch_name = data['Unnamed: 1'].values[4]
+    report_date = data['Unnamed: 4'].values[data.loc[data['Unnamed: 1'] == 'Date Selection'].index[0]]
+    report_date = datetime.strptime(report_date, '%Y-%m').strftime('%d-%m-%Y')
+
+    # trim data to show section needed
+    data = data.iloc[
+        data.loc[data['Unnamed: 1'] == 'Market Summary'].index[0] + 1:
+        data.loc[data['Unnamed: 2'] == 'Census/Sample - Properties & Rooms'].index[0] - 1
+    ][data.columns[1: 10]].reset_index(drop=True)
+
+    # split data into 'Occupancy', 'ADR' and 'RevPAR'
+    split_ids = [None] + data.loc[data['Unnamed: 2'].isna()].index.tolist() + [None]
+    subdfs = [data.iloc[idx:split_ids[i + 1]].dropna(how='all') for i, idx in enumerate(split_ids[:-1])]
+
+    # dummy df to populate
+    ret_df: dict[str, list[Any]] = {'Date': [report_date] * 3, 'Hotel': [branch_name if hotel is not None else hotel] * 3, 'Metric': []}
+
+    # clean up subdfs
+    for i, subdf in enumerate(subdfs):
+        # fix column names to differentiate
+        column_names = ['Set'] + subdf.iloc[1].values.tolist()[1:]
+        column_names = [f'{column_names[j - 1]} {name}' if '% Chg' in name else name for j, name in enumerate(column_names)]
+        ret_df['Metric'].append(subdfs[i]['Unnamed: 2'].values[0])
+
+        # set column names and trim
+        subdfs[i].columns = column_names
+        subdfs[i] = subdfs[i].iloc[2:].reset_index(drop=True)
+
+        # populate dummy df
+        for j, market in enumerate(subdfs[i]['Set']):
+            for col in subdfs[i].columns[1:]:
+                # get and set column name
+                ret_col_name = f'{market} {col}'
+                if ret_col_name not in ret_df:
+                    ret_df[ret_col_name] = []
+
+                # append value
+                ret_df[f'{market} {col}'].append(subdfs[i][col].values[j])
+
+    return pd.DataFrame(ret_df).reset_index(drop=True)
+
+def dStarMonthly_extract_raw_data(data: pd.DataFrame, *, hotel: str = None) -> pd.DataFrame:
+    """
+    Extracts raw data from the 'Monthly {n}' sheet in dStar reports. Compatible
+    with all hotel reports.
+
+    Parameters
+    ----------
+    `data` : `pd.DataFrame`
+        Formatted dStar Monthly Report as a Pandas DataFrame
+    `hotel` : `str`, `default = None`
+        Hotel name/code to be shown in the dataset
+
+    Returns
+    -------
+    `pd.DataFrame`
+        dStar Monthly Report as raw data
+
+    Examples
+    --------
+    >>> df = dStarMonthly_extract_raw_data(dStarMonthly_df)
+
+    See Also
+    --------
+    :func:`amara.core.extraction` : data extraction from reports module
+    """
+    
+    # call by value
+    data = data.copy(deep=True)
+
+    # get global sheet data
+    report_date = data['Unnamed: 4'].values[data.loc[data['Unnamed: 1'] == 'Date Selection'].index[0]]
+    report_date = datetime.strptime(report_date, '%Y-%m').strftime('%d-%m-%Y')
+
+    # trim data to show related sections
+    data = data.iloc[:data.loc[data['Unnamed: 1'] == 'Date Selection'].index[0]].dropna(how='all', axis=1)
+    averages_col_id = data.columns.tolist().index(data.iloc[1][data.iloc[1] == 'Averages'].index[0])
+    data.drop(data.columns[averages_col_id:], axis=1, inplace=True)
+
+    # split data into 'Occupancy', 'ADR' and 'RevPAR'
+    split_ids = [i for i in range(1, len(data) - 1) if all([
+        pd.isna(data['Unnamed: 1'].iloc[i - 1]),
+        pd.notna(data['Unnamed: 1'].iloc[i]),
+        pd.isna(data['Unnamed: 1'].iloc[i + 1])])
+    ] + [None]
+    subdfs = [data.iloc[idx:split_ids[i + 1]] for i, idx in enumerate(split_ids[:-1])]
+
+    # dummy df to populate
+    ret_df = pd.DataFrame()
+
+    # clean up subdfs
+    for i, _ in enumerate(subdfs):
+        # clean up and track metric
+        subdfs[i] = subdfs[i].dropna(how='all').reset_index(drop=True)
+        metric_name = subdfs[i]['Unnamed: 1'].values[0]
+
+        # split into raw value and % change dataframes
+        sub_split_ids = subdfs[i].loc[subdfs[i]['Unnamed: 1'].isna()].index.tolist() + [None]
+        raw_values, pc_change = [subdfs[i].iloc[idx:sub_split_ids[j + 1]].T.reset_index(drop=True) for j, idx in enumerate(sub_split_ids[:-1])]
+
+        # clean up raw_values extracted
+        raw_values.columns = raw_values.iloc[0]
+        raw_values = raw_values.iloc[1:].rename(columns={raw_values.columns[1]: 'Date'})
+        raw_values.drop(raw_values.columns[0], axis=1, inplace=True)
+
+        # clean up pc_change extracted
+        pc_change.columns = pc_change.iloc[0]
+        pc_change = pc_change.iloc[1:].rename(columns={pc_change.columns[1]: 'Date'})
+        pc_change.drop(pc_change.columns[0], axis=1, inplace=True)
+        pc_change.rename(columns=dict(zip(pc_change.columns[1:],
+                                          pc_change.columns[1:] + ' % Chg')), inplace=True)
+
+        # merge dfs and add extra info
+        for col in pc_change.columns[1:]:
+            raw_values[col] = pc_change[col]
+
+        raw_values.insert(1, 'Metric', [metric_name] * len(raw_values))
+        if hotel is not None:
+            raw_values.insert(1, 'Hotel', [hotel] * len(raw_values))
+
+        ret_df = pd.concat([ret_df, raw_values])
+
+    return pd.DataFrame(ret_df).reset_index(drop=True)
+
+def dStarDaily_extract_raw_data(data: pd.DataFrame, *, hotel: str = None) -> pd.DataFrame:
+    """
+    Extracts raw data from the 'Daily {n}' sheet in dStar reports. Compatible
+    with all hotel reports.
+
+    Parameters
+    ----------
+    `data` : `pd.DataFrame`
+        Formatted dStar Daily Report as a Pandas DataFrame
+    `hotel` : `str`, `default = None`
+        Hotel name/code to be shown in the dataset
+
+    Returns
+    -------
+    `pd.DataFrame`
+        dStar Daily Report as raw data
+
+    Examples
+    --------
+    >>> df = dStarDaily_extract_raw_data(dStarDaily_df)
+
+    See Also
+    --------
+    :func:`amara.core.extraction` : data extraction from reports module
+    """
+
+    # call by value
+    data = data.copy(deep=True)
+
+    # trim data to show related sections
+    data = data.iloc[3:data.loc[data['Unnamed: 1'] == 'Date Selection'].index[0]].dropna(how='all', axis=1)
+    data.reset_index(drop=True, inplace=True)
+
+    # split data into 'Occupancy', 'ADR' and 'RevPAR'
+    split_ids = data.loc[(data['Unnamed: 1'].notna()) & (data['Unnamed: 3'].isna())].index.tolist() + [None]
+    subdfs = [data.iloc[idx:split_ids[i + 1]].iloc[1:-1] for i, idx in enumerate(split_ids[:-1])]
+
+    # dummy df to populate
+    ret_df = pd.DataFrame()
+
+    for i, _ in enumerate(subdfs):
+        subdfs[i] = subdfs[i].reset_index(drop=True)
+        metric_name = subdfs[i]['Unnamed: 1'].values[0]
+
+        # split into raw value and % change dataframes
+        sub_split_ids = [None] + subdfs[i].loc[subdfs[i]['Unnamed: 1'].isna()].index.tolist() + [None]
+        raw_values, pc_change, indexes = [subdfs[i].iloc[idx:sub_split_ids[j + 1]].T.reset_index(drop=True) for j, idx in enumerate(sub_split_ids[:-1])]
+
+        # clean up raw_values extracted
+        raw_values.columns = raw_values.iloc[0]
+        raw_values = raw_values.iloc[1:].dropna(how='all', axis=1).reset_index(drop=True)
+        raw_values.rename(columns={raw_values.columns[0]: 'Date'}, inplace=True)
+
+        # clean up pc_change extracted
+        pc_change.columns = pc_change.iloc[0]
+        pc_change = pc_change.iloc[1:].dropna(how='all', axis=1).reset_index(drop=True)
+        pc_change.rename(columns={pc_change.columns[0]: 'Date'}, inplace=True)
+        pc_change.rename(columns=dict(zip(
+            pc_change.columns[1:],
+            pc_change.columns[1:] + ' % Chg'
+        )), inplace=True)
+
+        # clean up indexes extracted
+        indexes.columns = indexes.iloc[0]
+        indexes = indexes.iloc[1:].dropna(how='all', axis=1).reset_index(drop=True)
+        indexes.rename(columns={indexes.columns[0]: 'Date'}, inplace=True)
+
+        # merge dataframes
+        raw_values = raw_values.merge(pc_change, 'inner', on='Date')
+        raw_values = raw_values.merge(indexes, 'inner', on='Date')
+        raw_values.insert(1, 'Metric', [metric_name] * len(raw_values))
+        ret_df = pd.concat([ret_df, raw_values])
+
+    # add hotel name if given
+    if hotel:
+        ret_df.insert(1, 'Hotel', [hotel] * len(ret_df))
+
+    return ret_df.reset_index(drop=True)
